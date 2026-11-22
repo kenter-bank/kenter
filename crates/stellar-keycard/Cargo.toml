@@ -1,0 +1,54 @@
+[package]
+name = "stellar-keycard"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Stellar key vault on Keycard secure elements"
+
+[dependencies]
+# Smart card communication (PC/SC)
+pcsc = "2"
+
+# The custody trait this card implements as a hardware Ed25519/Stellar backend.
+kenter-vault = { path = "../kenter-vault" }
+
+# Keycard secure channel — Status Keycard uses secp256k1.
+k256 = { version = "0.14", features = ["ecdh", "ecdsa", "arithmetic"] }
+
+# Encryption. V1 (Cryptnox card): AES-256-CBC + CBC-MAC. V2 (forked applet /
+# production cards): AES-128-CCM.
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+aes-gcm = "0.10"
+ccm = { version = "0.5", features = ["alloc"] }
+
+# MAC (secure channel)
+hmac = "0.12"
+
+# Hashing / KDF
+sha2 = { workspace = true }
+hkdf = { workspace = true }
+
+# Ed25519 (application layer, after seed unwrap)
+ed25519-dalek = { workspace = true }
+
+# Stellar address encoding + DecoratedSignature XDR base64
+stellar-strkey = { workspace = true }
+base64 = { workspace = true }
+
+# Key hygiene
+zeroize = { workspace = true }
+
+# Serialization (slot metadata)
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Misc
+rand = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+hex = { workspace = true }
+
+[dev-dependencies]
+tracing-subscriber = { workspace = true }

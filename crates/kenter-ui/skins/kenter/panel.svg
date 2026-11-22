@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:pelt="urn:pelt:1.0"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     viewBox="0 0 200 200" pelt:scale="9-slice" pelt:content-inset="16 16 16 16">
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview pagecolor="#0e0f14" inkscape:pageopacity="1" inkscape:pagecheckerboard="false" inkscape:deskcolor="#0e0f14" bordercolor="#666666"/>
+  <pelt:slices top="14" right="14" bottom="14" left="14"/>
+  <g data-pelt-state="default" inkscape:groupmode="layer" inkscape:label="default">
+    <g class="pelt-bg"><rect width="200" height="200" rx="12" fill="#161822"/></g>
+    <g class="pelt-border"><rect x="0.5" y="0.5" width="199" height="199" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.07"/></g>
+  </g>
+</svg>

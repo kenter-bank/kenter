@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:pelt="urn:pelt:1.0"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     viewBox="0 0 320 6" pelt:scale="9-slice" pelt:content-inset="0 0 0 0">
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview pagecolor="#0e0f14" inkscape:pageopacity="1" inkscape:pagecheckerboard="false" inkscape:deskcolor="#0e0f14" bordercolor="#666666"/>
+  <pelt:slices top="2" right="3" bottom="2" left="3"/>
+
+  <!--
+    The one piece of feedback this client has for "something is happening
+    and you cannot do anything about it yet". A networked deposit is six
+    on-chain steps and two node round-trips; unlocking is several seconds
+    of Argon2id. A line of static text through any of that is
+    indistinguishable from a hang.
+  -->
+
+  <!-- Determinate: the host sets `phase`, and only when the step changes. -->
+  <g data-pelt-state="default" inkscape:groupmode="layer" inkscape:label="default">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="0" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <!-- Nothing is moving, and that is the message. -->
+  <g data-pelt-state="disabled" inkscape:groupmode="layer" inkscape:label="disabled" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.04"/>
+    </g>
+  </g>
+
+  <!--
+    Indeterminate: frames f0..f11, cycled by the host.
+
+    The bar wraps rather than sweeping off one end and back on at the other.
+    Two rects a full period apart mean the visible ink is exactly 96 units in
+    EVERY frame, so there is no thin frame and no dead frame where the loop
+    turns over - either of which would read as the stall this exists to rule
+    out. Generated, because twelve hand-written copies drift.
+  -->
+  <g data-pelt-state="f0" inkscape:groupmode="layer" inkscape:label="f0" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="0.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-320.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f1" inkscape:groupmode="layer" inkscape:label="f1" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="26.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-293.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f2" inkscape:groupmode="layer" inkscape:label="f2" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="53.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-266.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f3" inkscape:groupmode="layer" inkscape:label="f3" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="80.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-240.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f4" inkscape:groupmode="layer" inkscape:label="f4" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="106.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-213.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f5" inkscape:groupmode="layer" inkscape:label="f5" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="133.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-186.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f6" inkscape:groupmode="layer" inkscape:label="f6" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="160.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-160.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f7" inkscape:groupmode="layer" inkscape:label="f7" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="186.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-133.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f8" inkscape:groupmode="layer" inkscape:label="f8" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="213.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-106.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f9" inkscape:groupmode="layer" inkscape:label="f9" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="240.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-80.00" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f10" inkscape:groupmode="layer" inkscape:label="f10" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="266.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-53.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="f11" inkscape:groupmode="layer" inkscape:label="f11" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="6" rx="3" fill="#ffffff" fill-opacity="0.06"/>
+    </g>
+    <g class="pelt-fg">
+      <rect x="293.33" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+      <rect x="-26.67" y="0" width="96" height="6" rx="3"
+            fill="#4fe3ba" opacity="0.75"/>
+    </g>
+  </g>
+</svg>

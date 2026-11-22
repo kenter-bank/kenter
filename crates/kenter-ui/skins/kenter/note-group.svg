@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 320 120"
+   pelt:scale="9-slice"
+   pelt:content-inset="0 0 0 0"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="note-group.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:pelt="urn:pelt:1.0">
+  <defs
+     id="defs4" />
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview
+     pagecolor="#161822"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="false"
+     inkscape:deskcolor="#161822"
+     bordercolor="#666666"
+     id="namedview1"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:zoom="1.1890625"
+     inkscape:cx="288.04205"
+     inkscape:cy="89.986859"
+     inkscape:window-width="1620"
+     inkscape:window-height="992"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g4" />
+  <pelt:slices
+     top="46"
+     right="46"
+     bottom="46"
+     left="46" />
+  <!--
+    PLACEHOLDER. The container a note and its opened detail live in.
+
+    This exists because without it an expanded note was three stacked
+    rectangles: the card and each detail row were siblings in one flat list,
+    all wearing `list-row`, so opening a note looked like two unrelated rows
+    appearing underneath an unrelated row. Nothing said they belonged
+    together.
+
+    Collapsed it draws nothing - a closed note is just its card, and a border
+    around a single card is noise. Open, it draws the enclosure. The height
+    is whatever the contents need; 9-slice keeps the corners honest.
+  -->
+  <!-- Closed: the card speaks for itself. -->
+  <g
+     data-pelt-state="default"
+     inkscape:groupmode="layer"
+     inkscape:label="default"
+     id="g1" />
+  <!-- Open: one object, with the card's accent carried down the side. -->
+  <g
+     data-pelt-state="focus"
+     inkscape:groupmode="layer"
+     inkscape:label="focus"
+     style="display:inline"
+     id="g4">
+    <g
+       class="pelt-bg"
+       id="g2"
+       transform="translate(-1.7840276,-4.757407)">
+      <rect
+         width="320"
+         height="120"
+         rx="10"
+         fill="#4fe3ba"
+         fill-opacity="0.03"
+         id="rect1"
+         x="0"
+         y="0" />
+    </g>
+    <g
+       class="pelt-border"
+       id="g3">
+      <rect
+         x="0.5"
+         y="0.5"
+         width="319"
+         height="119"
+         rx="10"
+         fill="none"
+         stroke="#4fe3ba"
+         stroke-opacity="0.35"
+         id="rect2" />
+      <rect
+         x="0"
+         y="10"
+         width="2"
+         height="100"
+         fill="#4fe3ba"
+         opacity="0.5"
+         id="rect3" />
+    </g>
+    <g
+       inkscape:groupmode="layer"
+       id="layer1"
+       inkscape:label="fleurishes"
+       style="display:inline">
+      <path
+         id="use6"
+         style="fill:none;stroke:#4fe3ba;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:0.682353"
+         d="m 38.194568,3.4863825 c -0.859582,-0.422367 -1.551663,-0.1703418 -1.558563,0.1929868 -0.0067,0.3547723 0.383333,0.7791444 1.483955,0.460855 1.18202,-0.3418289 1.932602,-1.3544157 3.141538,-1.3018537 1.208936,0.052562 2.102497,1.5243101 2.102497,1.5243101 H 10.932983 c 0,0 -1.6620068,-0.052341 -2.7858082,0.6833114 C 7.0465525,5.7664708 6.7095426,6.1186022 6.5378287,6.2824818 6.3382393,6.5021123 6.17659,6.6672237 5.4561113,7.767846 4.7204593,8.8916474 4.7727999,10.553654 4.7727999,10.553654 v 32.431012 c 0,0 -1.4717477,-0.893561 -1.5243101,-2.102497 -0.052562,-1.208936 0.9600248,-1.959518 1.3018537,-3.141538 0.3182894,-1.100622 -0.1060827,-1.490643 -0.460855,-1.483955 -0.3633286,0.0069 -0.6153538,0.698981 -0.1929868,1.558563"
+         sodipodi:nodetypes="ccssccscsccsscc" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#use6"
+         id="use7"
+         transform="rotate(180,160.30724,60.131772)" />
+      <path
+         style="fill:none;stroke:#50e3bb;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:0.690196"
+         d="m 8.9201381,45.195366 0.148669,-21.854338 c 0,0 6.6901039,1.040683 10.8528349,-3.865393 4.696373,-5.535012 1.784027,-10.9342003 1.784027,-10.9342003 h 22.746353"
+         id="path2"
+         sodipodi:nodetypes="ccscc" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#path2"
+         id="use5"
+         transform="rotate(180,159.83004,59.420551)" />
+    </g>
+    <g
+       class="pelt-border"
+       id="use2"
+       transform="matrix(0.88602046,0,0,0.88602046,33.337344,8.0281243)">
+      <path
+         style="baseline-shift:baseline;display:inline;overflow:visible;opacity:1;vector-effect:none;fill:#4fe3ba;fill-opacity:0.35;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
+         d="m -17.417949,0.23729663 c -5.808311,0.0215224 -10.520344,4.69168417 -10.5,10.50000037 l 0.335588,95.811913 c 0.02034,5.80832 4.691689,10.52153 10.5,10.5 l 320.199201,-1.18649 c 5.80831,-0.0215 10.52035,-4.69168 10.5,-10.5 L 313.28126,9.5508135 c -0.0203,-5.8083158 -4.6917,-10.52152245 -10.5,-10.50000003 z m 0,0.99999997 320.199209,-1.18648313 c 5.2716,-0.0195337 9.48153,4.22838373 9.5,9.50000003 l 0.33558,95.8119065 c 0.0185,5.27162 -4.22839,9.48047 -9.5,9.5 l -320.199201,1.18649 c -5.271612,0.0195 -9.481536,-4.22838 -9.5,-9.5 l -0.335588,-95.811913 c -0.01846,-5.2716167 4.228388,-9.4804667 9.5,-9.5000004 z"
+         id="rect4"
+         sodipodi:nodetypes="ssssssssssssssssss" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,135 @@
+[package]
+name = "kenter-ui"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "Kenter Desktop UI — Pelt (SVG skin) based; Taffy layout, pelt appearance"
+
+[lib]
+name = "kenter_ui"
+path = "src/lib.rs"
+
+# PNG mock — render one frame for visual iteration.
+[[bin]]
+name = "kenter-ui-mock"
+path = "src/mock.rs"
+
+# Interactive window — winit + softbuffer present of the CPU pelt canvas.
+[[bin]]
+name = "kenter-ui"
+path = "src/main.rs"
+
+[features]
+# Set by the installers (packaging/): skins come only from beside the
+# executable, never from the build machine's source tree, and a missing
+# skins folder stops the wallet: the source-tree path is the build
+# machine's, and on a user's machine someone else may be able to create it.
+# Development builds, debug or release, leave it off and read the source
+# tree.
+packaged = []
+
+[dependencies]
+# The SVG-skin appearance engine.
+pelt = { git = "https://github.com/kenter-bank/pelt", rev = "b2f09bcc64f71e6364277c4502c48a3a3ef995d8" }
+# Flexbox/grid layout (structure; appearance is the pelt).
+taffy = "0.7"
+# Windowing + a CPU framebuffer to present the composited canvas.
+winit = "0.30"
+softbuffer = "0.4"
+
+# The wallet this GUI is a shell over — same core, store and chain adapter the
+# CLI uses, so the two desktop surfaces cannot disagree about the wallet.
+kenter-wallet = { path = "../kenter-wallet", features = ["fs"] }
+kenter-client = { path = "../kenter-client", features = ["wallet"] }
+kenter-crypto = { path = "../kenter-crypto" }
+# Software custody, for deriving owner keys behind the authorization prompt.
+kenter-vault = { path = "../kenter-vault" }
+# Card custody. Desktop-only, like this crate: it brings in PC/SC.
+stellar-keycard = { path = "../stellar-keycard" }
+# Networked printing: the tunnel transport, and the walk itself.
+kenter-network = { path = "../kenter-network" }
+kenter-print = { path = "../kenter-print" }
+serde_json = { workspace = true }
+# The typed passphrase never sits in a plain String.
+zeroize = { workspace = true }
+
+# QR symbols for receive addresses. default-features off: the image and svg
+# renderers pull dependencies we do not want, and we build our own SVG anyway
+# (see src/qr.rs) so it goes through pelt's cache like every other element.
+qrcode = { version = "0.14", default-features = false }
+# Reading a paper backup back. rqrr is pure Rust and QR-only, which is all
+# we need; `decode_to` writes raw bytes, so a binary payload survives where
+# a String-returning decoder would mangle it.
+rqrr = "0.11"
+# Deflate for PDF content streams. Already in the tree via kenter-wallet;
+# a page of symbols is tens of thousands of rectangle operators, and
+# uncompressed that is 700KB for one sheet.
+miniz_oxide = "0.8"
+# Loading the scan. Only the formats a scanner or phone actually produces -
+# the default feature set pulls in a dozen codecs we would never open.
+# Reading QR off photographs. rqrr could not: on a photographed sheet
+# of nine symbols it found one, where this found all nine, and neither
+# a local binarizer nor a hand-rolled region finder closed the gap --
+# the difference is ZXing's detector, which is most of the library.
+# QR only: no 1D formats, no encoders, no image codecs, and no
+# client_support, which drags in chrono-tz, fancy-regex and uriparse.
+# NB "no_character_set_support" compiles and then panics "not
+# implemented" the first time a symbol carries bytes; encoding_rs is
+# already in the tree anyway.
+rxing = { version = "0.9", default-features = false, features = ["qrcode", "multi_barcode_readers", "encoding_rs"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp"] }
+hex = { workspace = true }
+# Event ids for a deposit's print request.
+rand = { workspace = true }
+tokio = { workspace = true }
+# Clipboard, text only: the default features pull in image decoding for
+# clipboard images, which this client has no use for.
+arboard = { version = "3", default-features = false }
+# Native save dialog. The one artifact that IS the money should land
+# where the holder chooses, not where the app guessed.
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+dotenvy = "0.15.7"
+[dev-dependencies]
+# Drive the async receive flow without standing up a window.
+tempfile = "3"
+# Parse our own PDFs back in tests. A hand-written PDF that only this
+# code can read is the failure worth guarding against.
+lopdf = "0.46"
+# Real-note fixtures for the tests and the restore demo. A dev-dependency,
+# so the shipped binaries never carry test scaffolding - examples are built
+# with dev-dependencies available, which is what lets  use it.
+kenter-wallet = { path = "../kenter-wallet", features = ["fs", "testing"] }
+quircs = "0.10"
+# QR reading only: no 1D formats, no encoders, no image codecs, no
+# client_support (which drags in chrono-tz, fancy-regex and uriparse).
+# We hand it luminance we already have.
+
+# --- camera capture, per platform ----------------------------------------
+#
+# Reading paper backups. The backend is NOT portable
+# in one feature flag: nokhwa compiles a different one per OS, and naming
+# only "input-msmf" builds a crate with no backend at all on Linux and
+# macOS -- it compiles, finds no cameras, and fails at run time. So each
+# target names its own.
+#
+# "decoding" is off everywhere. It exists to turn MJPEG frames into
+# pixels and pulls mozjpeg-sys, a C library wanting NASM on the build
+# machine. Raw frames avoid it. That is a toolchain choice, not a
+# security one -- `image` above already decodes JPEG for the file path.
+#
+# The cost of refusing MJPEG is not the same on every platform. Measured
+# on Windows, a typical webcam offers raw NV12 at 1920x1440 (6.62 px/module,
+# plenty). Many UVC webcams on Linux offer raw YUYV only up to 720p,
+# which is 3.31 px/module and will NOT read. The camera screen therefore
+# has to check the negotiated format against the floor and say so, rather
+# than present a viewfinder that cannot work.
+
+[target.'cfg(windows)'.dependencies]
+nokhwa = { version = "0.10.11", default-features = false, features = ["input-msmf"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nokhwa = { version = "0.10.11", default-features = false, features = ["input-v4l"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+nokhwa = { version = "0.10.11", default-features = false, features = ["input-avfoundation"] }

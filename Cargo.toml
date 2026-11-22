@@ -1,0 +1,108 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/kenter-crypto",
+    "crates/kenter-network",
+    "crates/kenter-tunnler",
+    "crates/kenter-client",
+    "crates/stellar-keycard",
+    "crates/kenter-wallet-wasm",
+    "crates/kenter-desktop",
+    "crates/kenter-vault",
+    "crates/kenter-wallet",
+    "crates/kenter-ui",
+    "crates/kenter-node",
+    "crates/kenter-print",
+    "crates/kenter-systest",
+]
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/kenter-bank/kenter"
+
+# Keep the UI render/composite path fast even in dev builds (the hot loops are
+# per-pixel). Only these packages are optimized; everything else stays debuggable
+# and quick to compile. Run the window in --release for best results regardless.
+[profile.dev.package.kenter-ui]
+opt-level = 3
+[profile.dev.package.pelt]
+opt-level = 3
+[profile.dev.package.resvg]
+opt-level = 3
+[profile.dev.package.usvg]
+opt-level = 3
+[profile.dev.package.tiny-skia]
+opt-level = 3
+
+[workspace.dependencies]
+# Ed25519 signing (Stellar-compatible)
+# "rand_core" is what `SigningKey::generate` needs. It used to arrive by
+# feature unification through biscuit-auth, which is no longer in the tree
+# at all; losing it broke keypair generation, which is not a thing to learn
+# from a compile error in someone else's crate. Declared explicitly so it
+# cannot happen again.
+ed25519-dalek = { version = "2", features = ["zeroize", "serde", "hazmat", "rand_core"] }
+
+# X25519 ECDH key exchange
+x25519-dalek = { version = "2", features = ["zeroize", "static_secrets"] }
+
+# Hashing
+sha2 = "0.10"
+hmac = "0.12"
+
+# Secure memory
+zeroize = { version = "1", features = ["derive"] }
+secrecy = "0.10"
+
+# Stellar address encoding/decoding
+stellar-strkey = "0.0.16"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+
+# NaCl Box (X25519 + HSalsa20 + XSalsa20-Poly1305, matches PyNaCl)
+crypto_box = "0.9"
+
+# Salsa20 (for HSalsa20 key derivation matching NaCl)
+salsa20 = "0.10"
+
+# Encryption (XSalsa20-Poly1305)
+crypto_secretbox = "0.1"
+chacha20poly1305 = "0.10"
+
+# Constant-time comparison
+subtle = "2"
+
+# Hex encoding
+hex = "0.4"
+
+# Error handling
+thiserror = "2"
+
+# Timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# Randomness (must match ed25519-dalek's rand_core version)
+rand = "0.8"
+
+# HKDF key derivation
+hkdf = "0.12"
+
+# Curve conversion (Ed25519 -> X25519)
+curve25519-dalek = { version = "4", features = ["zeroize"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# WebSocket client (with TLS for wss://)
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+
+# Stream utilities for async WebSocket
+futures-util = "0.3"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

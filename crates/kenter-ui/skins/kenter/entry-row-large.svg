@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:pelt="urn:pelt:1.0"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     viewBox="0 0 320 56" pelt:scale="9-slice" pelt:content-inset="12 16 12 16">
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview pagecolor="#161822" inkscape:pageopacity="1" inkscape:pagecheckerboard="false" inkscape:deskcolor="#161822" bordercolor="#666666"/>
+  <pelt:slices top="10" right="10" bottom="10" left="10"/>
+  <!--
+    A field being typed into, in large type: a passphrase, a PIN, an amount.
+  -->
+  <g data-pelt-state="default" inkscape:groupmode="layer" inkscape:label="default">
+    <g class="pelt-bg"><rect width="320" height="56" rx="8" fill="#4fe3ba" fill-opacity="0.06"/></g>
+    <g class="pelt-border"><rect x="1" y="1" width="318" height="54" rx="8" fill="none" stroke="#4fe3ba" stroke-width="2"/></g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="text">
+    <text data-pelt-label="label" x="16" y="20.880" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="500" fill="#7f869a">label</text>
+    <text data-pelt-label="value" x="16" y="48.000" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">••••••|</text>
+    <text data-pelt-label="hint" x="304" y="31.740" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="500" fill="#7f869a" text-anchor="end">Enter to continue</text>
+  </g>
+</svg>

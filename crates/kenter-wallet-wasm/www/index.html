@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kenter WASM bridge spike</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    pre { background: #111; color: #0f0; padding: 1rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; }
+    h1 { font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>Kenter WASM bridge spike</h1>
+  <p>Loads <code>kenter-crypto</code> (compiled to wasm32) and round-trips real crypto in the browser.</p>
+  <pre id="out">running…</pre>
+  <script type="module">
+    import init, {
+      version, generate_keypair, address_from_secret, sign_verify_roundtrip,
+      full_loop_selftest,
+    } from "./kenter_wallet_wasm.js";
+
+    const out = document.getElementById("out");
+    const log = (line) => { out.textContent += line + "\n"; };
+
+    async function main() {
+      out.textContent = "";
+      const t0 = performance.now();
+      await init();                     // fetch + instantiate the wasm module
+      const tInit = performance.now() - t0;
+      log(`init:                 ${tInit.toFixed(1)} ms`);
+      log(`version:              ${version()}`);
+
+      const tk0 = performance.now();
+      const kp = generate_keypair();    // rand -> getrandom -> crypto.getRandomValues
+      const tGen = performance.now() - tk0;
+      log(`generate_keypair:     ${tGen.toFixed(2)} ms`);
+      log(`  address:            ${kp.address}`);
+      log(`  secret:             ${kp.secret.slice(0, 8)}… (${kp.secret.length} chars)`);
+
+      const derived = address_from_secret(kp.secret);
+      log(`address_from_secret:  ${derived === kp.address ? "MATCH ✓" : "MISMATCH ✗"}`);
+
+      const msg = new TextEncoder().encode("kenter-spike");
+      const ts0 = performance.now();
+      const ok = sign_verify_roundtrip(kp.secret, msg);
+      const tSig = performance.now() - ts0;
+      log(`sign_verify_roundtrip:${tSig.toFixed(2)} ms  -> ${ok ? "verified ✓" : "FAILED ✗"}`);
+
+      log(`\n--- full bearer-token loop (3-pair daisy chain) ---`);
+      const tl0 = performance.now();
+      const r = full_loop_selftest();   // initiate->extend->assemble->serialize->parse->compose->sign
+      const tLoop = performance.now() - tl0;
+      log(`full_loop_selftest:   ${tLoop.toFixed(1)} ms`);
+      log(`  chain links:        ${r.chain_links}`);
+      log(`  container size:     ${r.container_bytes} bytes`);
+      log(`  ephemeral address:  ${r.ephemeral_address}`);
+      log(`  composed key match: ${r.composed_key_matches ? "✓" : "✗"}`);
+      log(`  serialize roundtrip:${r.roundtrip_ok ? "✓" : "✗"}`);
+      log(`  sign/verify:        ${r.sign_verify_ok ? "✓" : "✗"}`);
+      log(`  container version:  ${r.version_ok ? "✓" : "✗"}`);
+      const allOk = r.composed_key_matches && r.roundtrip_ok && r.sign_verify_ok && r.version_ok;
+      log(`\n${allOk ? "FULL LOOP VERIFIED IN BROWSER ✓" : "LOOP HAD A FAILURE ✗"}`);
+    }
+    main().catch((e) => { out.textContent = "ERROR: " + e; });
+  </script>
+</body>
+</html>

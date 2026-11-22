@@ -1,0 +1,61 @@
+[package]
+name = "kenter-wallet"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Kenter wallet core — port traits + token store model + on-chain reconciliation. wasm-safe; shared by desktop and PWA shells."
+
+[features]
+# Filesystem Store impl (native shells). Off for wasm, which has no filesystem.
+fs = ["dep:tokio"]
+# Real-note fixtures (src/testing.rs), for downstream tests and demos.
+# Off by default: it is test scaffolding, not product surface.
+testing = []
+
+[dependencies]
+# Core primitives (wasm-safe). BearerToken model, offline verify, container codec.
+kenter-crypto = { path = "../kenter-crypto" }
+# Custody trait (wasm-safe SoftVault; native KeycardVault lives in stellar-keycard).
+kenter-vault = { path = "../kenter-vault" }
+
+# Backup sealing: same AEAD family the vault uses (XSalsa20-Poly1305).
+crypto_secretbox = { workspace = true }
+# Credentials are held in Zeroizing buffers by the authorization port.
+zeroize = { workspace = true }
+sha2 = { workspace = true }
+# Keyed hash for opaque record filenames (sealed.rs).
+hmac = { workspace = true }
+rand = { workspace = true }
+# Async file IO for the `fs` feature only.
+tokio = { workspace = true, optional = true }
+
+# Serialization for the store model.
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+# Deflate for the paper backup. Pure Rust, so it does not cost wasm-safety;
+# a .kbk is JSON full of hex and compresses to ~58%, which halves the sheet.
+miniz_oxide = "0.8"
+thiserror = { workspace = true }
+
+# NOTE: deliberately NO kenter-client / kenter-network / tokio / reqwest here.
+# Those are native-only engines; shells implement the ChainRead/Store ports with
+# them. Keeping this crate free of them is what lets it compile to wasm32 for the
+# PWA. See this crate's ARCHITECTURE.md.
+
+# On wasm32, `rand` (pulled transitively via kenter-crypto) needs the browser RNG.
+# Target-scoped so native builds are unaffected. See kenter-wallet-wasm for the
+# same pattern. This is what lets the core compile standalone to wasm32.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+# Self, with the fixtures on. Integration tests compile the lib as a plain
+# dependency, so `cfg(test)` does not reach it and `testing` has to be asked
+# for by name. Cargo's documented way to enable a feature for your own tests.
+kenter-wallet = { path = ".", features = ["testing"] }
+# Minimal block_on for exercising the async ChainRead port in tests (wasm-safe).
+pollster = "0.4"
+# Verify owner-authorization signatures directly in the gate tests.
+ed25519-dalek = { workspace = true }

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 64 64"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs4" />
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview
+     pagecolor="#14161f"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="false"
+     inkscape:deskcolor="#14161f"
+     bordercolor="#666666"
+     id="namedview1"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:zoom="8.2643105"
+     inkscape:cx="27.528007"
+     inkscape:cy="29.28254"
+     inkscape:window-width="1620"
+     inkscape:window-height="992"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g4" />
+  <!--
+    PLACEHOLDER logo: a Kenter link, the detachable joining shackle that
+    connects two lengths of a ship's stud-link anchor chain, and where the
+    name comes from.
+
+    What makes it a Kenter link rather than an ordinary chain link: it is
+    built from two C-shaped halves that interlock, with a stud across the
+    middle, and the seam between the halves stays visible. The tapered pin
+    that runs diagonally through the parts is left out at icon size.
+
+    Drawn as a skin so an artist can replace it in Inkscape without touching
+    code. Keep the square viewBox: the host draws this into a
+    square slot and stretches to fit.
+  -->
+  <g
+     data-pelt-state="default"
+     inkscape:groupmode="layer"
+     inkscape:label="default"
+     id="g4">
+    <g
+       transform="matrix(0.65929999,-0.46164682,0.46164682,0.65929999,-4.2125437,26.383452)"
+       id="g3"
+       style="stroke-width:16.2;stroke-dasharray:none">
+      <!-- The link: one rounded oval, the two halves together. -->
+      <path
+         id="rect1"
+         style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#4fe3ba;enable-background:accumulate;stop-color:#000000;stop-opacity:1;opacity:1"
+         d="M 56.871074 12.871429 C 53.181415 10.368391 48.746946 8.9013716 44.000461 8.9013716 L 21.643709 8.9004448 L 21.416013 25.099506 L 23.859077 25.10084 L 23.907389 25.078383 L 38.481673 25.143035 L 38.481281 25.101286 L 44.000989 25.100266 C 45.487004 25.100266 46.826506 25.512792 47.923371 26.238152 C 49.751478 27.447087 50.901202 29.522927 50.901202 31.999618 C 50.901202 35.657935 48.398235 38.443796 44.895666 38.850256 L 44.666373 55.089674 C 57.021967 54.731192 67.100097 44.433702 67.100097 31.999091 C 67.100097 24.088283 63.020506 17.043159 56.871074 12.871429 z M 19.90619 8.8984136 C 7.2912429 8.9499753 -3.1006782 19.373516 -3.1006782 31.999453 C -3.1006782 44.656746 7.3422604 55.100552 19.999553 55.100552 L 42.92925 55.09977 L 43.156946 38.900709 L 38.482143 38.900853 L 38.48143 26.890693 C 31.206627 26.955752 27.599995 26.938961 25.809858 26.90523 C 25.343173 26.896437 25.001921 26.887018 24.745482 26.876852 L 24.743211 38.899734 L 20.000418 38.89967 C 16.037711 38.89967 13.100204 35.963025 13.100204 32.000318 C 13.100204 28.145165 15.878696 25.259981 19.678293 25.106222 L 19.90619 8.8984136 z " />
+      <!-- The stud across the middle. -->
+      <!-- The seam where the two C-halves meet, stepped at each end of the
+           stud the way the halves' tenons lock together. -->
+    </g>
+  </g>
+</svg>

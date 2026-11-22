@@ -1,0 +1,35 @@
+[package]
+name = "kenter-systest"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Local system test — provision, run the node network, assert the ledger"
+
+[[bin]]
+name = "kenter-systest"
+path = "src/main.rs"
+
+# A Rust binary rather than a shell script because the assertions read Soroban
+# structs and the provisioning builds trustline and payment transactions —
+# `kenter-client` already does both, and parsing contract XDR out of CLI
+# output would be a second decoder to keep correct. See docs/SYSTEM_TEST.md.
+[dependencies]
+kenter-client = { path = "../kenter-client" }
+kenter-crypto = { path = "../kenter-crypto" }
+# Phase 8 mints and redeems without a human, so it drives the print
+# itself rather than asking someone to click through the window.
+kenter-print = { path = "../kenter-print" }
+stellar-strkey = { workspace = true }
+kenter-network = { path = "../kenter-network" }
+rand = { workspace = true }
+kenter-vault = { path = "../kenter-vault" }
+tokio = { workspace = true }
+reqwest = { version = "0.12", features = ["json"] }
+serde_json = { workspace = true }
+# Decoding event topics and values read back from the RPC (phase 8).
+stellar-xdr = { version = "23", features = ["std", "curr"] }
+hex = { workspace = true }
+# Node secrets reach the daemons through the environment and nowhere else.
+zeroize = { workspace = true }
+dotenvy = "0.15.7"

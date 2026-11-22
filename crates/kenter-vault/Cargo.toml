@@ -1,0 +1,42 @@
+[package]
+name = "kenter-vault"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pluggable key-custody vault for Kenter — KeyVault trait + software (SoftVault) backend"
+
+[dependencies]
+# Stellar Ed25519 keypair + address encoding.
+kenter-crypto = { path = "../kenter-crypto" }
+stellar-strkey = { workspace = true }
+
+# At-rest encryption (XSalsa20-Poly1305) — same AEAD family kenter-crypto already uses.
+crypto_secretbox = { workspace = true }
+
+# Password KDF: Argon2id (memory-hard; the modern default for password hashing).
+argon2 = "0.5"
+
+# SLIP-0010 ed25519 derivation (HMAC-SHA512) — see src/slip10.rs.
+hmac = { workspace = true }
+sha2 = { workspace = true }
+# BIP85 derives over BIP32/secp256k1, which needs one mod-n addition per
+# hardened step. Pure Rust and wasm-safe, like everything else in this crate.
+k256 = { version = "0.14", features = ["arithmetic"], default-features = false }
+
+# Constant-time comparison for the header MAC, which is checked against
+# bytes an attacker may have written.
+subtle = { workspace = true }
+
+# Key hygiene, randomness, serialization.
+zeroize = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+bip39 = { version = "3.0.0", features = ["rand", "zeroize"] }
+
+[dev-dependencies]
+# Verify vault signatures directly in tests.
+ed25519-dalek = { workspace = true }

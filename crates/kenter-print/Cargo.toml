@@ -1,0 +1,25 @@
+[package]
+name = "kenter-print"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Networked printing — walk a partial token around live Kenter nodes"
+
+# Lives in its own crate because both clients need it and neither can reach the
+# other: `kenter-desktop` (the CLI) and `kenter-ui` (the window) are sibling
+# binaries. Folding it into `kenter-client` would hand that crate a
+# `kenter-network` dependency it does not otherwise want; folding it into
+# `kenter-wallet` would cost the shared core its wasm target.
+[dependencies]
+kenter-client = { path = "../kenter-client" }
+stellar-strkey = { workspace = true }
+kenter-crypto = { path = "../kenter-crypto" }
+kenter-network = { path = "../kenter-network" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# HTTPS to the relay's /proxy route (see NodeRelay). Same version and
+# TLS stack kenter-client already uses, so nothing new is downloaded.
+reqwest = { version = "0.12", features = ["json"] }
+# Waiting for the beacon round, the claims and each node.
+tokio = { workspace = true }

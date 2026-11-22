@@ -1,0 +1,95 @@
+[package]
+name = "kenter-node"
+version = "0.2.4"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Kenter pair node — serves shard and chain-extension requests over the tunnel"
+
+[lib]
+name = "kenter_node"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kenter-node"
+path = "src/main.rs"
+
+# The desktop node: tray plus settings window.
+# Its own binary so that, started at login, it opens no console window.
+[[bin]]
+name = "kenter-node-tray"
+path = "src/bin/kenter-node-tray.rs"
+required-features = ["tray"]
+
+[features]
+default = []
+# Desktop builds turn this on; a headless (Pi) build leaves it off and
+# carries no GUI dependencies.
+tray = ["keystore", "dep:tray-icon", "dep:winit", "dep:eframe", "dep:qrcode"]
+# The recovery phrase in the OS credential store.
+keystore = ["dep:keyring"]
+# Build OpenSSL from source (for TLS to the relay and RPC) instead of
+# linking the system's: what cross-compiling to a Raspberry Pi needs
+# (packaging/linux/build-deb.sh).
+vendored-openssl = ["dep:openssl", "openssl/vendored"]
+
+[dependencies]
+# Protocol handlers + the tunnel client this daemon is a thin wrapper around.
+kenter-network = { path = "../kenter-network" }
+kenter-crypto = { path = "../kenter-crypto" }
+# Roster membership (on-chain). The node crate is where transport meets chain:
+# kenter-network stays chain-free so it can be reasoned about as pure protocol.
+kenter-client = { path = "../kenter-client" }
+# The pair's recovery phrase (BIP-39) and SLIP-10 derivation.
+kenter-vault = { path = "../kenter-vault" }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+zeroize = { workspace = true }
+# `init --restore` reads the phrase from a terminal without echo.
+rpassword = "7"
+
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+# Only for feature `vendored-openssl`: unifies the TLS stack's OpenSSL onto
+# a vendored build.
+openssl = { version = "0.10", optional = true }
+
+# Tray (feature `tray`). Windows and macOS only: a Linux desktop tray
+# needs a GTK loop, and a Pi build has no desktop.
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+tray-icon = { version = "0.21", optional = true }
+winit = { version = "0.30", optional = true }
+eframe = { version = "0.33", optional = true, default-features = false, features = ["default_fonts", "glow"] }
+# The funding address as a QR code in Settings (same version as the wallet).
+qrcode = { version = "0.14", optional = true, default-features = false }
+# OS keystore (feature `keystore`): Credential Manager, Keychain.
+keyring = { version = "3.6", optional = true, features = ["windows-native", "apple-native"] }
+
+[dev-dependencies]
+# Icon rendering for packaging (examples/render_icons.rs); the workspace
+# already builds this version for the wallet's skins.
+resvg = "0.46"
+
+# Debian package for the headless node (packaging/linux/build-deb.sh).
+# cargo-deb maps target/release to the target triple's directory when
+# cross-compiling.
+[package.metadata.deb]
+name = "kenter-node"
+maintainer = "Kenter"
+copyright = "Kenter contributors"
+section = "net"
+priority = "optional"
+# Explicit, not $auto: $auto reads the build machine's libc (2.41 on
+# Debian 13), but the binary is linked against GLIBC (2.31) by zigbuild.
+depends = "libc6 (>= 2.31), systemd"
+extended-description = """A Kenter pair node, headless: it joins the Kenter roster, stays bound to a relay and serves prints. Runs as the unprivileged kenter-node user under a hardened systemd unit. Set up with `sudo kenter-nodectl init`."""
+maintainer-scripts = "../../packaging/linux/debian/"
+assets = [
+    ["target/release/kenter-node", "usr/bin/", "755"],
+    ["../../packaging/linux/kenter-nodectl", "usr/bin/", "755"],
+    ["../../packaging/linux/kenter-node.service", "lib/systemd/system/", "644"],
+    ["../../packaging/linux/kenter-node.sysusers", "usr/lib/sysusers.d/kenter-node.conf", "644"],
+]
+

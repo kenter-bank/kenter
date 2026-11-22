@@ -1,0 +1,14 @@
+#!/bin/sh
+# Create the service user and pick up the unit. The service is not enabled
+# or started: the node has to be set up first (see kenter-node.service).
+set -e
+if [ "$1" = "configure" ]; then
+    systemd-sysusers kenter-node.conf || true
+    install -d -m 0700 -o kenter-node -g kenter-node /var/lib/kenter-node
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload || true
+    fi
+    echo "Kenter node installed. Set it up with: sudo kenter-nodectl init --name <name>"
+fi
+#DEBHELPER#
+exit 0

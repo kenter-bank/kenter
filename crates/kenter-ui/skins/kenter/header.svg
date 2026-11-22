@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:pelt="urn:pelt:1.0"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     viewBox="0 0 320 96" pelt:scale="9-slice" pelt:content-inset="18 20 18 20">
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview pagecolor="#0e0f14" inkscape:pageopacity="1" inkscape:pagecheckerboard="false" inkscape:deskcolor="#0e0f14" bordercolor="#666666"/>
+  <pelt:slices top="16" right="16" bottom="16" left="16"/>
+  <!--
+    The heading at the top of a page.
+  -->
+  <defs>
+    <linearGradient id="bal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b1e2b"/><stop offset="1" stop-color="#232741"/>
+    </linearGradient>
+  </defs>
+  <g data-pelt-state="default" inkscape:groupmode="layer" inkscape:label="default">
+    <g class="pelt-bg"><rect width="320" height="96" rx="14" fill="url(#bal)"/></g>
+    <g class="pelt-border"><rect x="0.75" y="0.75" width="318.5" height="94.5" rx="14" fill="none" stroke="#39d0a7" stroke-width="1.5" opacity="0.5"/></g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="text">
+    <text data-pelt-label="eyebrow" x="22" y="29.380" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="500" fill="#8b93a7">Settings</text>
+    <text data-pelt-label="title" x="22" y="62.820" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700" fill="#ffffff">This client</text>
+    <text data-pelt-label="subtitle" x="22" y="86.640" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="500" fill="#8b93a7">where things are, and whether it can act</text>
+  </g>
+</svg>

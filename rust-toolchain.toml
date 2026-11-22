@@ -1,0 +1,23 @@
+# Pin the toolchain for the whole tree, contracts included -- rustup
+# finds this file from any subdirectory, so `contracts/*` (separate
+# workspaces with their own lockfiles) pick it up too.
+#
+# Why pinned, not stable:
+#
+# 1. Stable breaks the contracts. Rust 1.99.1 does not compile `ethnum`
+#    1.5.2, which `soroban-sdk` depends on: `ethnum/src/error.rs`
+#    transmutes into `ParseIntError` / `TryFromIntError`, whose size
+#    changed, giving E0512. Tracking stable means an automatic toolchain
+#    update can break the build without a line of this repo changing.
+# 2. The mint is immutable. The wasm that goes to mainnet should be
+#    rebuildable byte for byte from a tagged commit, and the compiler
+#    version is part of that.
+#
+# Floor: 1.89, for `std::fs::File::lock` (the wallet store lock).
+#
+# To move it: change the channel, rebuild both contracts with
+# `stellar contract build`, and run the mint suite plus the two
+# `wasm-bench` budget checks `scripts/deploy_testnet.sh` runs.
+[toolchain]
+channel = "1.91.1"
+targets = ["wasm32v1-none"]

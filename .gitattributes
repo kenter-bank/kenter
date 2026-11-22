@@ -1,0 +1,4 @@
+
+# Linux packaging runs on Linux: keep LF whatever the checkout platform.
+packaging/linux/** text eol=lf
+*.sh text eol=lf

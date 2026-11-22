@@ -1,0 +1,24 @@
+[package]
+name = "kenter-wallet-wasm"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WASM bridge exposing kenter-crypto to the browser (PWA wallet spike)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kenter-crypto = { path = "../kenter-crypto", default-features = false }
+wasm-bindgen = "0.2"
+
+# getrandom is pulled transitively by `rand` inside kenter-crypto. On
+# wasm32-unknown-unknown it must be told to use the browser's crypto.getRandomValues.
+# Declaring it here with the "js" feature unifies that feature across the whole tree.
+getrandom = { version = "0.2", features = ["js"] }
+
+
+[package.metadata.wasm-pack.profile.release]
+# Keep the spike honest about bundle size — no aggressive opt yet.
+wasm-opt = false

@@ -1,0 +1,35 @@
+[package]
+name = "kenter-desktop"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Sovereign desktop reference client — offline mint/inspect of Kenter bearer tokens"
+
+[[bin]]
+name = "kenter"
+path = "src/main.rs"
+
+[dependencies]
+# All already in the workspace lockfile — no new downloads.
+kenter-crypto = { path = "../kenter-crypto" }
+kenter-vault = { path = "../kenter-vault" }
+stellar-keycard = { path = "../stellar-keycard" }
+# Online seam: the wallet core + its desktop ChainRead adapter (WalletChain).
+kenter-wallet = { path = "../kenter-wallet", features = ["fs"] }
+kenter-client = { path = "../kenter-client", features = ["wallet"] }
+# Tunnel transport, and the networked print both clients share.
+kenter-network = { path = "../kenter-network" }
+kenter-print = { path = "../kenter-print" }
+# Async runtime for the RPC reads in `balance`.
+tokio = { workspace = true }
+sha2 = { workspace = true }
+# FileStore record encoding (see src/store.rs).
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+
+[dev-dependencies]
+# Store keys in tests are held in Zeroizing buffers like the real ones.
+zeroize = { workspace = true }

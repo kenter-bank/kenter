@@ -1,0 +1,69 @@
+# Kenter pair node, headless (installing it: docs/TESTNET.md).
+#
+# Runs as the unprivileged system user `kenter-node` (created from
+# /usr/lib/sysusers.d/kenter-node.conf), with its home, keys and status in
+# /var/lib/kenter-node (owner-only). Not enabled by the package: set the
+# node up first, then
+#
+#   sudo kenter-nodectl init --name <name>       # shows the recovery phrase once
+#   sudo kenter-nodectl addresses                # fund both
+#   sudo systemctl enable --now kenter-node
+#
+# A clean stop (SIGTERM, `systemctl stop`) leaves selection before exiting,
+# which takes up to two roster transactions; hence the stop timeout.
+
+[Unit]
+Description=Kenter pair node
+Documentation=https://github.com/kenter-bank/kenter/blob/main/docs/runbook/setup.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=kenter-node
+Group=kenter-node
+Environment=KENTER_NODE_HOME=/var/lib/kenter-node
+# Optional overrides (KENTER_RPC, RUST_LOG, ...).
+EnvironmentFile=-/etc/default/kenter-node
+ExecStart=/usr/bin/kenter-node run
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=120
+
+StateDirectory=kenter-node
+StateDirectoryMode=0700
+UMask=0077
+
+# Hardening. The node needs outbound TCP (relay, RPC, Horizon), DNS, and
+# its state directory; nothing else.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateUsers=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+DevicePolicy=closed
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

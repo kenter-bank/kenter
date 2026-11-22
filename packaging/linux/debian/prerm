@@ -1,0 +1,9 @@
+#!/bin/sh
+# Stop the service cleanly (it leaves selection first) before removal. The
+# keys and config in /var/lib/kenter-node are kept: they hold the stake.
+set -e
+if [ -d /run/systemd/system ] && systemctl is-active --quiet kenter-node; then
+    systemctl stop kenter-node || true
+fi
+#DEBHELPER#
+exit 0

@@ -1,0 +1,50 @@
+#!/bin/sh
+# Run a kenter-node command as the service's user, against the service's
+# home, so `init`, `status`, `claim` and the rest act on the same node the
+# service runs.
+#
+#   sudo kenter-nodectl init --name pi-kitchen
+#   sudo kenter-nodectl init --name pi-kitchen --restore
+#   sudo kenter-nodectl status
+#
+# Commands that submit transactions (claim, leave, withdraw) refuse while
+# the service runs: `sudo systemctl stop kenter-node` first.
+#
+# The command runs in a new session (setsid), so root's terminal is not
+# its controlling terminal and it cannot inject keystrokes into root's
+# shell (TIOCSTI), and with no-new-privs. Without a
+# controlling terminal it cannot prompt without echo itself, so for
+# `init --restore` this script reads the phrase (echo off, as root) and
+# hands it over on stdin.
+set -eu
+if [ "$(id -u)" -ne 0 ]; then
+    echo "kenter-nodectl: run with sudo" >&2
+    exit 1
+fi
+install -d -m 0700 -o kenter-node -g kenter-node /var/lib/kenter-node
+
+run() {
+    setsid -w setpriv --reuid=kenter-node --regid=kenter-node --init-groups --no-new-privs \
+        env -i PATH=/usr/bin:/bin HOME=/var/lib/kenter-node KENTER_NODE_HOME=/var/lib/kenter-node \
+        /usr/bin/kenter-node "$@"
+}
+
+restore=no
+if [ "${1:-}" = "init" ]; then
+    for a in "$@"; do
+        [ "$a" = "--restore" ] && restore=yes
+    done
+fi
+
+if [ "$restore" = "yes" ] && [ -t 0 ]; then
+    printf "Enter the pair's recovery phrase, then press Enter: " >&2
+    trap 'stty echo 2>/dev/null' EXIT INT TERM
+    stty -echo
+    IFS= read -r phrase
+    stty echo
+    printf '\n' >&2
+    printf '%s\n' "$phrase" | run "$@"
+    phrase=
+else
+    run "$@"
+fi

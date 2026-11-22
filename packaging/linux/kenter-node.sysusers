@@ -1,0 +1,2 @@
+# The unprivileged user the Kenter node service runs as.
+u kenter-node - "Kenter pair node" /var/lib/kenter-node

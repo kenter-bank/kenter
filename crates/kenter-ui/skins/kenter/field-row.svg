@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:pelt="urn:pelt:1.0"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     viewBox="0 0 320 64" pelt:scale="9-slice" pelt:content-inset="12 16 12 16">
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview pagecolor="#161822" inkscape:pageopacity="1" inkscape:pagecheckerboard="false" inkscape:deskcolor="#161822" bordercolor="#666666"/>
+  <pelt:slices top="10" right="10" bottom="10" left="10"/>
+  <!--
+    A label and its value, the most common row. The value wraps: the host
+    adds a line per line of text, stepping by the distance from `value`
+    to `value-next`, and the row grows to match (28px plus a step a line).
+  -->
+  <g data-pelt-state="default" inkscape:groupmode="layer" inkscape:label="default">
+    <g class="pelt-bg"><rect width="320" height="64" rx="8" fill="#ffffff" fill-opacity="0.02"/></g>
+    <g class="pelt-border"><rect x="0.5" y="0.5" width="319" height="63" rx="8" fill="none" stroke="#ffffff" stroke-opacity="0.05"/></g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="text">
+    <text data-pelt-label="key" x="16" y="18.080" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="500" fill="#7f869a">label</text>
+    <text data-pelt-label="value" x="16" y="34.420" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#d3d7e3">the value, wrapped</text>
+    <text data-pelt-label="value-next" x="16" y="52.420" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#d3d7e3">onto a second line</text>
+    <!-- Other colours the same text takes in other states. The host
+         uses each one's style at the position of the label above. -->
+    <g inkscape:groupmode="layer" inkscape:label="text variants" style="display:none">
+    <text data-pelt-label="value-warn" x="16" y="34.420" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#e0a870">a warning</text>
+    <text data-pelt-label="value-alarm" x="16" y="34.420" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#e07a7a">something wrong</text>
+    </g>
+  </g>
+</svg>

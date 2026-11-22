@@ -1,0 +1,43 @@
+[package]
+name = "kenter-mint"
+description = "Kenter Autonomous Token Escrow Contract"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = { version = "23.0.1", default-features = false }
+soroban-token-sdk = "23.0.1"
+
+[features]
+# Measurement only: compiles the real .wasm into the test binary (see test.rs).
+wasm-bench = []
+
+[dev-dependencies]
+soroban-sdk = { version = "23.0.1", features = ["testutils"] }
+ed25519-dalek = "2"
+sha2 = "0.10"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release.package]
+wasm-bindgen = { opt-level = "s" }
+
+[profile.release.build-override]
+opt-level = 3
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true
+
+[workspace]

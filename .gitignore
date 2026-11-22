@@ -1,0 +1,28 @@
+/target
+
+.env
+# Any sibling of it too: a `.env.bak` from an edit, a `.env.local`,
+# a `.env.old`. The file holds node secrets and a funded
+# deployer key, and a backup of it is exactly as sensitive as the
+# original while being one `git add -A` from a commit.
+.env.*
+
+**/target/
+**/test_snapshots/
+# Contract lockfiles are TRACKED: the wasm must rebuild byte for byte, and
+# rust-toolchain.toml alone does not pin dependencies. With them, a
+# deployed mint or roster can be rebuilt exactly from its commit.
+
+# System-test run logs. Every run records the addresses it funded and used,
+# which is exactly the link between this code and a person that docs/TESTNET.md
+# deliberately keeps out of the repository. The logs are run artifacts - read
+# them locally, do not publish them.
+docs/systest-runs/
+
+# Documentation site build output and dependencies
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# Release packages (packaging/)
+/dist/

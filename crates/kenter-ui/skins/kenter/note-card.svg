@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:pelt="urn:pelt:1.0"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     viewBox="0 0 320 52" pelt:scale="9-slice" pelt:content-inset="10 16 10 16">
+  <!-- Inkscape only: the colour this element sits on in the app, so faint
+       strokes and fills look in the editor as they do on screen. The app
+       ignores it. -->
+  <sodipodi:namedview pagecolor="#161822" inkscape:pageopacity="1" inkscape:pagecheckerboard="false" inkscape:deskcolor="#161822" bordercolor="#666666"/>
+  <pelt:slices top="12" right="14" bottom="12" left="14"/>
+
+  <!--
+    PLACEHOLDER. The face of a note, and the one element in this client that
+    is a picture of money rather than a row in a list. It is deliberately
+    plain so it can be replaced wholesale: the art is the point of the pelt
+    system, and nothing here should have to be reverse-engineered to redraw.
+
+    What the replacement has to keep, because the code depends on it:
+      - the three states below, by name;
+      - a content-inset that leaves room for three labels (amount at the
+        left, id beside it, mode and state at the right);
+      - 9-slice behaviour, since the card scales to the panel width.
+
+    A note is a bearer instrument. Whatever this becomes should read as an
+    object you could hand over, not as a table row - which is exactly how it
+    reads today, and why a stack of them looks like stacked rectangles.
+  -->
+
+  <g data-pelt-state="default" inkscape:groupmode="layer" inkscape:label="default">
+    <g class="pelt-bg">
+      <rect width="320" height="52" rx="8" fill="#ffffff" fill-opacity="0.035"/>
+      <!-- Edge marking: a hint of where a denomination band would sit. -->
+      <rect x="0" y="0" width="3" height="52" rx="1.5" fill="#ffffff" fill-opacity="0.1"/>
+    </g>
+    <g class="pelt-border">
+      <rect x="0.5" y="0.5" width="319" height="51" rx="8"
+            fill="none" stroke="#ffffff" stroke-opacity="0.07"/>
+    </g>
+  </g>
+
+  <!-- Pointed at, not yet opened. -->
+  <g data-pelt-state="hover" inkscape:groupmode="layer" inkscape:label="hover" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="52" rx="8" fill="#ffffff" fill-opacity="0.06"/>
+      <rect x="0" y="0" width="3" height="52" rx="1.5" fill="#ffffff" fill-opacity="0.18"/>
+    </g>
+    <g class="pelt-border">
+      <rect x="0.5" y="0.5" width="319" height="51" rx="8"
+            fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+    </g>
+  </g>
+
+  <!--
+    Open. The card keeps its own border but loses the bottom rounding, so it
+    joins the detail below it into one object instead of floating above it.
+  -->
+  <g data-pelt-state="focus" inkscape:groupmode="layer" inkscape:label="focus" style="display:none">
+    <g class="pelt-bg">
+      <rect width="320" height="52" rx="8" fill="#4fe3ba" fill-opacity="0.07"/>
+      <rect y="40" width="320" height="12" fill="#4fe3ba" fill-opacity="0.07"/>
+      <rect x="0" y="0" width="3" height="52" fill="#4fe3ba"/>
+    </g>
+    <g class="pelt-border">
+      <path d="M0.5 44 V8.5 A8 8 0 0 1 8.5 0.5 H311.5 A8 8 0 0 1 319.5 8.5 V44"
+            fill="none" stroke="#4fe3ba" stroke-width="1.5"/>
+    </g>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="text">
+    <text data-pelt-label="amount" x="16" y="26.940" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff">$25.0000000</text>
+    <text data-pelt-label="id" x="150" y="25.920" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="500" fill="#7f869a">GD7MDB...CLHR-3</text>
+    <text data-pelt-label="status" x="304" y="25.920" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="500" fill="#7f869a" text-anchor="end">bearer · live</text>
+    <!-- Other colours the same text takes in other states. The host
+         uses each one's style at the position of the label above. -->
+    <g inkscape:groupmode="layer" inkscape:label="text variants" style="display:none">
+    <text data-pelt-label="amount-dim" x="16" y="26.940" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#9aa2b4">$25.0000000</text>
+    </g>
+  </g>
+</svg>

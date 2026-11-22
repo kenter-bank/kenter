@@ -1,0 +1,57 @@
+# Kenter relay (kenter-tunnler) behind nginx (docs/DEPLOY.md).
+#
+# Listens on 127.0.0.1 only; nginx terminates TLS and forwards /connect
+# (WebSocket) and /proxy. Runs as the unprivileged user kenter-relay with
+# its identity key in /etc/kenter-tunnler/env (root 0600, read by systemd).
+
+[Unit]
+Description=Kenter relay (kenter-tunnler)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=kenter-relay
+Group=kenter-relay
+EnvironmentFile=/etc/kenter-tunnler/env
+# The relay also reads ./.env if present; give it an empty working dir.
+WorkingDirectory=/var/lib/kenter-tunnler
+ExecStart=/usr/local/bin/kenter-tunnler
+Restart=on-failure
+RestartSec=5
+
+StateDirectory=kenter-tunnler
+StateDirectoryMode=0700
+UMask=0077
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateUsers=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+DevicePolicy=closed
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

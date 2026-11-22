@@ -1,0 +1,20 @@
+# Cap build parallelism so a workspace build fits in memory.
+#
+# Cargo defaults to one job per logical CPU. On an 8-core, 16 GB
+# machine that means eight concurrent `rustc` processes against about
+# 6 GB of headroom once a browser and an editor are open -- and the
+# heavy crates here are heavy: `kenter-ui` pulls in Vello and wgpu, and
+# the contracts pull in `soroban-sdk`, so a single `rustc` can take
+# 1-2 GB through codegen and linking. `cargo test --workspace` at the
+# default parallelism exhausted memory on a 16 GB machine and the run
+# was killed (2026-10-28).
+#
+# Four costs roughly a third more wall time on a full build and halves
+# the peak. Raise it on a bigger machine, or override per-invocation
+# with `-j N`, which wins over this file.
+#
+# If builds still thrash, the next thing to look at is `rust-analyzer`:
+# it indexes this workspace in the background and can hold several GB
+# on its own, which lands on top of whatever cargo is doing.
+[build]
+jobs = 4
