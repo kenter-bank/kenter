@@ -24,6 +24,8 @@ sums=$DIST/SHA256SUMS
 (cd "$DIST" && sha256sum --check --strict SHA256SUMS)
 
 rm -f "$sums.sig"
-ssh-keygen -Y sign -f "$KEY" -n file "$sums"
+# Straight to the token: desktop agents (GNOME keyring and others) cannot
+# use FIDO2 keys and answer "agent refused operation".
+env -u SSH_AUTH_SOCK ssh-keygen -Y sign -f "$KEY" -n file "$sums"
 ssh-keygen -Y verify -f "$SIGNERS" -I "$PRINCIPAL" -n file -s "$sums.sig" <"$sums"
 echo "signed: $sums.sig"

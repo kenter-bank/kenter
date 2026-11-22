@@ -94,6 +94,16 @@ On the release machine (x86_64 Linux, with the hardware token):
    git tag -s v0.2.4 -m "Kenter 0.2.4"
    git push origin v0.2.4
    ```
+   If signing fails with `agent refused operation`, the desktop's SSH agent
+   (GNOME keyring, for one) is answering for the hardware key and cannot
+   use it. Point git at a wrapper that goes to the token directly:
+   ```bash
+   mkdir -p ~/.local/bin
+   printf '#!/bin/sh\nexec env -u SSH_AUTH_SOCK ssh-keygen "$@"\n' > ~/.local/bin/ssh-keygen-direct
+   chmod +x ~/.local/bin/ssh-keygen-direct
+   git config gpg.ssh.program ~/.local/bin/ssh-keygen-direct
+   ```
+   `scripts/sign-release.sh` already bypasses the agent.
 4. Publish the packages, `SHA256SUMS` and `SHA256SUMS.sig` together.
 
 If the signing key ever changes, `allowed_signers` changes in a commit of its
