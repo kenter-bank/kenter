@@ -2,3 +2,5 @@
 # Linux packaging runs on Linux: keep LF whatever the checkout platform.
 packaging/linux/** text eol=lf
 *.sh text eol=lf
+# ssh-keygen reads this; CRLF would end up inside the key comment.
+allowed_signers text eol=lf

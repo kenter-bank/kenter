@@ -100,6 +100,7 @@ export default withMermaid(
             { text: 'A local network', link: '/runbook/local-network' },
             { text: 'Running the tests', link: '/runbook/testing' },
             { text: 'When things break', link: '/runbook/troubleshooting' },
+            { text: 'Releases', link: '/runbook/releases' },
           ],
         },
       ],
