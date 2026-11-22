@@ -16,6 +16,15 @@ mainnet must be rebuildable byte for byte from a tagged commit, which
 includes the compiler version. The workspace needs at least 1.89
 (`std::fs::File::lock`, used by the wallet store lock) and uses edition 2024.
 
+::: warning Contract builds depend on the build host
+The same commit, toolchain and `stellar` CLI produce different contract wasm
+on Windows and on Linux: the code is identical but functions are laid out in
+a different order, so the hashes differ. Builds on x86_64 Linux agree with
+each other. **Mainnet contracts are built and deployed on x86_64 Linux**, and
+that is the platform to verify a deployed hash on. A Windows build is fine
+for development and testnet, but its hash will not match a Linux build.
+:::
+
 To move the pin: change the channel, rebuild both contracts with
 `stellar contract build`, and run the mint test suite plus the two
 `wasm-bench` budget checks that `scripts/deploy_testnet.sh` runs.
@@ -31,6 +40,33 @@ running the rent keeper. Not needed to build or test the workspace.
 needs it.
 
 ## Platform dependencies
+
+### Linux packages
+
+On Debian, Ubuntu or Pop!_OS, this is everything the workspace, the
+contracts and the `stellar` CLI need:
+
+```bash
+sudo apt install build-essential pkg-config git curl ca-certificates \
+  libssl-dev libpcsclite-dev libudev-dev libdbus-1-dev libclang-dev \
+  libxkbcommon-dev libwayland-dev pcscd
+```
+
+| Package | Needed by |
+|---|---|
+| `build-essential`, `pkg-config` | linking, and finding the libraries below |
+| `libssl-dev` | `openssl-sys`, through the HTTP stack |
+| `libpcsclite-dev`, `pcscd` | smart card access (below) |
+| `libudev-dev`, `libdbus-1-dev` | the `stellar` CLI (hardware wallets, OS keyring) |
+| `libclang-dev` | crates that generate bindings at build time |
+| `libxkbcommon-dev`, `libwayland-dev` | `kenter-ui` windowing |
+
+Install the `stellar` CLI with the version the contracts were last built
+with, from source:
+
+```bash
+cargo install --locked stellar-cli --version 23.4.1
+```
 
 ### Smart card access (`stellar-keycard`)
 
@@ -162,6 +198,23 @@ The network itself (testnet or mainnet, and its passphrase) is not a
 variable. It is fixed when the binary is built: a build with the `mainnet`
 feature talks to mainnet and nothing else. See
 `crates/kenter-client/src/network.rs`.
+
+### Build-time network settings
+
+The contracts and relays a build uses are part of its network, so they are
+read when the binary is **compiled**, not when it runs:
+
+| Variable | Meaning |
+|---|---|
+| `KENTER_TESTNET_MINT`, `KENTER_MAINNET_MINT` | Mint contract id |
+| `KENTER_TESTNET_ROSTER`, `KENTER_MAINNET_ROSTER` | Roster contract id |
+| `KENTER_TESTNET_RELAYS`, `KENTER_MAINNET_RELAYS` | Comma-separated relay hosts (`host` or `host:port`, no scheme) |
+
+A build without its contracts refuses to start, and a build without relays
+reaches no node. On testnet, `KENTER_MINT` and `KENTER_ROSTER` can still
+replace the contracts at run time; on mainnet they cannot. The packaging
+scripts refuse to build without these set. Changing one triggers a rebuild of
+the crates that read it.
 
 ::: danger Never put a secret on the command line
 Secrets come from the environment or from files, never from argv. Argv is

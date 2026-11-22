@@ -125,9 +125,12 @@ stellar contract build
 `cargo build --target wasm32v1-none --release` does not, and its output is
 what a deployed contract's hash is checked against. Use it for anything you
 deploy or verify. The pinned toolchain in `rust-toolchain.toml` applies here
-too.
+too. Build anything you deploy to mainnet, or verify against mainnet, on
+x86_64 Linux: Windows builds of the same source have different hashes (see
+[Setting up](/runbook/setup#toolchain)).
 
 The contract tests run with `cargo test` inside each contract directory.
-Deploying is covered in [Deployment](/DEPLOY). The testnet contract ids are
-in the `TESTNET` profile in `crates/kenter-client/src/network.rs`. The
-authoritative interface description is `contracts/kenter-mint/API.md`.
+Deploying is covered in [Deployment](/DEPLOY). Which contracts a client build
+talks to is set when it is compiled; see
+[Build-time network settings](/runbook/setup#build-time-network-settings).
+The authoritative interface description is `contracts/kenter-mint/API.md`.
