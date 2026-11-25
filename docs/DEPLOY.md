@@ -14,7 +14,7 @@ timer job that keeps the contracts' storage rent paid.
 
 `scripts/deploy_testnet.sh` deploys a roster and a mint. It deploys to
 **testnet only**: the network passphrase is pinned, and the script refuses
-any other. The repository has no mainnet deploy script; see
+any other. Mainnet has its own script, `scripts/deploy_mainnet.sh`; see
 [Deploying to mainnet](#deploying-to-mainnet).
 
 ## Before you start
@@ -147,26 +147,66 @@ is crossed again about every 90 days. Run `bump` on a schedule: see
 
 ## Deploying to mainnet
 
-The testnet script does not deploy to mainnet, by design. A mainnet deploy
-needs:
+`scripts/deploy_mainnet.sh` deploys the roster and the mint to mainnet,
+pays their first TTL extension, checks the result, and writes a deploy
+record. Its constructor values are fixed in the script, not taken from the
+environment: they are the testnet defaults, except `min_node_age`, which is
+17 280 (about a day).
 
-- **A mainnet deploy procedure** with the same build, budget gate and warm
-  step as the testnet script, and the same constructor values, except
-  `min_node_age`, which must be 17 280, not 0.
-- **A mainnet release build.** Clients are built with
-  `--features kenter-client/mainnet` and with `KENTER_MAINNET_MINT` and
-  `KENTER_MAINNET_ROSTER` set to the deployed ids (the MSI's `-Mainnet`
-  switch, the `.deb`'s `MAINNET=1`). A mainnet build has its contracts baked
-  in and cannot be pointed at others. Built without those two variables, it
-  refuses to start.
-- **Relays in the mainnet profile.** A wallet reaches a node only through a
-  relay listed in its build's profile (`Profile::relays` in
-  `crates/kenter-client/src/network.rs`). The mainnet list is empty, so a
-  mainnet wallet reaches no node until the mainnet relays are added there.
-  Run the mainnet relay on its own host, separate from any testnet relay.
-- **Funds for rent.** A deploy prepays code rent (about 60 XLM, estimated
-  from testnet), and the warm step pays the first TTL extension (about
-  15 to 19 XLM). Measure both on mainnet right after deploy.
+The script refuses to run unless:
+
+- the host is **x86_64 Linux**: contract builds differ between platforms,
+  and the published hashes are the x86_64 Linux build (see
+  [Setting up](/runbook/setup#toolchain));
+- `HEAD` is a **signed release tag** that verifies against
+  `allowed_signers`, and the working tree is clean;
+- `rustc` and the `stellar` CLI are the pinned versions;
+- there is **no `.env`** in the repository root, which the CLI would load;
+- network traffic leaves **through Tor** (`torsocks`, which refuses any
+  connection it can't route through Tor);
+- the submitting and verifying RPCs are different, both answer as mainnet,
+  and both are healthy;
+- the USDC and XLM asset contracts, derived from their assets rather than
+  configured, answer on chain as `USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`
+  and `native`;
+- the deployer holds at least `MIN_DEPLOYER_XLM` (default 100).
+
+Then it builds both contracts, runs the same budget gate as the testnet
+script against mainnet's cost table, prints every value it is about to fix,
+and waits for `deploy mainnet` to be typed.
+
+```bash
+DRY_RUN=1 scripts/deploy_mainnet.sh     # every check, build and gate; deploys nothing
+scripts/deploy_mainnet.sh
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DEPLOYER` | `kntr-deployer` | `stellar` CLI key alias that pays for the deploy |
+| `RPC_URL` | `https://rpc.lightsail.network` | RPC the deploy is submitted through |
+| `VERIFY_RPC_URL` | `https://mainnet.sorobanrpc.com` | A different operator's RPC, used only to check the result |
+| `EXPECT_MINT_SHA`, `EXPECT_ROSTER_SHA` | unset | Wasm hashes from a second Linux build of the same tag; the deploy stops if the local build differs |
+| `MIN_DEPLOYER_XLM` | 100 | Balance required before deploying |
+| `DEPLOY_WHAT` | `all` | `mint` (with `ROSTER_ID`) resumes after a failed mint; `warm` and `verify` (with both ids) rerun those steps |
+
+After deploying, the script fetches both contracts' code through
+`VERIFY_RPC_URL`, compares its hash with the local build, and reads every
+constructor value back. It writes `dist/mainnet-deploy-<tag>.txt` with the
+ids, hashes, values, the tag, and the ledger it was verified at: publish it
+with the release.
+
+**Funds.** A deploy prepays code rent (about 60 XLM, estimated from
+testnet), and the warm step pays the first TTL extension (about 15 to 19
+XLM). Measure both on mainnet right after deploy. After that the rent is
+ongoing: see [The rent keeper](#the-rent-keeper).
+
+**Release build.** Clients are built with `--features kenter-client/mainnet`
+and with `KENTER_MAINNET_MINT`, `KENTER_MAINNET_ROSTER` and
+`KENTER_MAINNET_RELAYS` set (the MSI's `-Mainnet` switch, the `.deb`'s
+`MAINNET=1`). A mainnet build has its contracts baked in and cannot be
+pointed at others; built without them, it refuses to start. Built without
+relays, it reaches no node. Run the mainnet relay on its own host, separate
+from any testnet relay.
 
 ---
 
