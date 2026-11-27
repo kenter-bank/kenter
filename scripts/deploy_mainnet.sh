@@ -90,6 +90,20 @@ say()  { printf '\n\033[1m%s\033[0m\n' "$*" >&2; }
 note() { printf '  %s\n' "$*" >&2; }
 die()  { printf '\n\033[31mrefusing:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# The values above, checked against each other. Both bounds count a
+# ledger as 1 s, the conservative direction if ledgers get faster.
+# - The fallback must open in the first half of the print window, or a
+#   slot the beacon never seeds expires first.
+# - A fallback seed is computable from the request onward, so fresh keys
+#   could be ground to score lowest for somebody else's print. Only
+#   min_node_age stops that: it must outlast the time from request to the
+#   end of the claim window at least twice over.
+(( BEACON_LEAD * BEACON_PERIOD + FALLBACK_DELAY < MAX_PRINT_LEDGERS / 2 )) \
+    || die "fallback_delay $FALLBACK_DELAY s opens too late for a $MAX_PRINT_LEDGERS-ledger print window"
+SEED_PUBLIC_FOR=$(( BEACON_LEAD * BEACON_PERIOD + FALLBACK_DELAY + CLAIM_WINDOW * 5 ))
+(( MIN_NODE_AGE >= 2 * SEED_PUBLIC_FOR )) \
+    || die "min_node_age $MIN_NODE_AGE ledgers does not outlast twice the $SEED_PUBLIC_FOR s a fallback seed is public before claims close"
+
 # Network calls go through Tor. torsocks fails closed: a connection it
 # can't route through Tor is refused, not made directly.
 tor() { torsocks "$@"; }

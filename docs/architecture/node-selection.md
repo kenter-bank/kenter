@@ -172,7 +172,20 @@ another holder's funds. No caller can choose the fallback seed, so a
 coalition of nodes cannot steer it.
 
 While the beacon is up the fallback is never used: daemons post round `R`
-within seconds, long before the fallback opens. The constructor refuses a
+within seconds, long before the fallback opens. It depends on someone
+posting the round, though: on a day no daemon posts it, a depositor who
+withholds it can wait for the fallback.
+
+**The fallback relies on `min_node_age`.** A fallback seed is computable
+from the request onward, so whoever could create and register pairs inside
+that time could grind keys that score lowest for somebody else's print and
+take its interior positions. Pairs must register before the request, and
+both members must be at least `min_node_age` ledgers on the roster, which
+closes this only if `min_node_age` outlasts the time from request to the
+end of the claim window. The mainnet deploy script refuses a
+`min_node_age` under twice that time (counting a ledger as 1 s); mainnet's
+17,280 ledgers is about a day, against about 690 s. Testnet's 0 leaves it
+open there, and its script warns. The constructor refuses a
 `fallback_delay` under 300 seconds, because a fallback open as soon as the
 round is due could race it and make every draw steerable.
 

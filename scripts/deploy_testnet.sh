@@ -129,6 +129,19 @@ if (( BEACON_LEAD * BEACON_PERIOD + FALLBACK_DELAY >= MAX_PRINT_LEDGERS * 5 / 2 
     exit 1
 fi
 
+# A fallback seed is computable from the request onward, so whoever can
+# make and register pairs within that time can grind keys that score
+# lowest for somebody else's print and take its interior positions. Only
+# min_node_age stops that, and it must outlast the time from request to
+# the end of the claim window, with margin. Counted at 1 s a ledger, so
+# faster ledgers cannot shrink it below the bound. Testnet keeps
+# min_node_age 0 so fresh test nodes can register at once: warned, not
+# refused (docs/architecture/node-selection.md).
+SEED_PUBLIC_FOR=$(( BEACON_LEAD * BEACON_PERIOD + FALLBACK_DELAY + CLAIM_WINDOW * 5 ))
+if (( MIN_NODE_AGE < 2 * SEED_PUBLIC_FOR )); then
+    echo "warning: min_node_age $MIN_NODE_AGE ledgers is under twice the $SEED_PUBLIC_FOR s a fallback seed is public before claims close; fresh keys can be ground against a fallback-seeded print (fine for testing, not for mainnet)" >&2
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 

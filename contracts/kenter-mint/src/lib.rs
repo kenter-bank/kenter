@@ -487,7 +487,11 @@ impl KenterMint {
         // The round that will seed this slot. It does not exist yet: the
         // lead puts it `beacon_lead` periods after this ledger's close
         // time, so nobody -- the depositor included -- can compute the
-        // draw when the request is made.
+        // beacon's draw when the request is made. The fallback's draw
+        // (`seed_fallback`) can be computed from here on; it is used only
+        // if nobody posts round `R` for `fallback_delay` seconds, which
+        // honest daemons prevent while the beacon is up but a depositor
+        // can wait out on a day no daemon posts it.
         let sel = &config.selection;
         let beacon_round =
             Self::round_at(sel, e.ledger().timestamp()).saturating_add(sel.beacon_lead);
