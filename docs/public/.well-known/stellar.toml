@@ -1,0 +1,27 @@
+# Kenter: private, non-custodial bearer notes on Stellar.
+# Served at https://kenter.app/.well-known/stellar.toml (SEP-1), as
+# text/plain with Access-Control-Allow-Origin: *.
+#
+# Kenter issues no asset. The account below deployed Kenter's two
+# contracts and pays their rent; it has no power over them (they have no
+# admin and cannot be upgraded).
+#
+#   roster  CDNW6RL3FU3WACLOY7TORDOTYYD46VVEOR4VHTYELDVOCCGDAWL3CLYK
+#   mint    CDVTT4LOUXONH77D2TFBI7O5FNOBTPBSJXO2QQRABVB5THNVWM6NPYDX
+#
+# Both were built from the signed tag contracts-v1. The deploy record,
+# listing the code hashes and every constructor value, is signed with the
+# project's release key: https://github.com/kenter-bank/kenter/releases
+
+VERSION = "2.7.0"
+NETWORK_PASSPHRASE = "Public Global Stellar Network ; September 2015"
+
+ACCOUNTS = [
+  "GAZUUX36IVXOIRTO7RNNFY6YKKASA2L4D26BUB62V4ZYQYT6LRS7WORD",
+]
+
+[DOCUMENTATION]
+ORG_NAME = "Kenter"
+ORG_URL = "https://kenter.app"
+ORG_DESCRIPTION = "Open-source, non-custodial bearer notes on Stellar, backed by USDC escrowed in an adminless contract."
+ORG_GITHUB = "kenter-bank"
