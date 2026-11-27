@@ -1315,9 +1315,11 @@ impl Run {
         // which this run's nodes are.
         let mut reach = self.reach()?;
         let mut mint = chain::mint(&self.funder, &mint_id);
+        let seed_since = chain::latest_ledger().await?;
         let (token, _container) =
             print_through_draw(&mut mint, &mut reach, &self.funder, self.cfg.nodes as u32 + 2).await?;
         self.rec.check(true, "printed a note through the draw", token.ephemeral_address());
+        self.check_seed_source(&mint_id, seed_since, token.slot_id).await?;
         let winners = interior_pairs(&token)?;
         let terms = terms_of(&self.funder, &self.cfg.roster, &winners).await?;
 
@@ -1728,6 +1730,24 @@ impl Run {
     /// What it proves: the wallet's path, with no node list and no relay
     /// setting. The draw picks the interior, and every fee is checked
     /// against who it picked.
+    /// Check how `slot_id` was seeded: from the beacon, or by the mint's
+    /// fallback when this run has the beacon turned off
+    /// (`KENTER_BEACON_MIRRORS=none`, which the run's own nodes inherit).
+    async fn check_seed_source(&mut self, mint_id: &str, since: u32, slot_id: u32) -> Result<(), String> {
+        let fallback = chain::fallback_slots_since(mint_id, since).await?.contains(&slot_id);
+        let want = beacon_off();
+        self.rec.check(
+            fallback == want,
+            if want {
+                "seeded by the mint's fallback: the beacon was off"
+            } else {
+                "seeded from the beacon, not the fallback"
+            },
+            format!("slot {slot_id}: PRINT fallback event {}", if fallback { "present" } else { "absent" }),
+        );
+        Ok(())
+    }
+
     async fn remote_print(&mut self, pairs: u32) -> Result<(), String> {
         self.rec.phase(&format!("Remote print — {pairs} pairs, nodes chosen by the network"));
         let mint_id = self.cfg.mint.clone();
@@ -1744,12 +1764,14 @@ impl Run {
             relays: kenter_client::network::built().relays.iter().map(|r| r.to_string()).collect(),
         };
         let started = std::time::Instant::now();
+        let seed_since = chain::latest_ledger().await?;
         let (token, _container) = print_through_draw(&mut mint, &mut reach, &self.funder, pairs).await?;
         self.rec.check(
             true,
             "printed a note through the draw",
             format!("{} in {:.0}s", token.ephemeral_address(), started.elapsed().as_secs_f64()),
         );
+        self.check_seed_source(&mint_id, seed_since, token.slot_id).await?;
         let winners = interior_pairs(&token)?;
         let terms = terms_of(&self.funder, &self.cfg.roster, &winners).await?;
         for (a, b) in &winners {
@@ -1994,6 +2016,13 @@ fn read_vault_address(path: &std::path::Path) -> Result<String, String> {
 
 
 /// Print one note of `total_pairs` through the draw, as the wallet does.
+/// Whether this run has the beacon turned off, so prints must be seeded by
+/// the mint's fallback.
+fn beacon_off() -> bool {
+    std::env::var(kenter_client::beacon::MIRRORS_ENV)
+        .is_ok_and(|v| v.trim().eq_ignore_ascii_case("none"))
+}
+
 async fn print_through_draw(
     mint: &mut kenter_client::MintClient,
     reach: &mut kenter_print::Reach,

@@ -33,10 +33,39 @@ pub struct Beacon {
     chain: String,
 }
 
+/// Replaces [`MIRRORS`]: a comma-separated list of base URLs, or `none` for
+/// no mirrors at all.
+///
+/// `none` is for testing the mint's fallback seed: with no beacon, this
+/// client seeds by the fallback once it opens. It changes nothing the mint
+/// accepts, since every signature is verified there; at worst a machine
+/// configured this way stops posting rounds itself, and others still do.
+pub const MIRRORS_ENV: &str = "KENTER_BEACON_MIRRORS";
+
+/// The mirror list `value` of [`MIRRORS_ENV`] asks for: the public list
+/// when unset or blank, none for `none`, otherwise each URL given.
+fn mirrors_from(value: Option<&str>) -> Vec<String> {
+    match value.map(str::trim) {
+        None | Some("") => MIRRORS.iter().map(|m| m.to_string()).collect(),
+        Some(v) if v.eq_ignore_ascii_case("none") => Vec::new(),
+        Some(v) => v
+            .split(',')
+            .map(|m| m.trim().trim_end_matches('/').to_string())
+            .filter(|m| !m.is_empty())
+            .collect(),
+    }
+}
+
 impl Beacon {
-    /// quicknet, through the public mirrors.
+    /// quicknet, through the public mirrors, or those named in
+    /// [`MIRRORS_ENV`].
     pub fn quicknet() -> Result<Self, ClientError> {
-        Self::new(QUICKNET, MIRRORS.iter().map(|m| m.to_string()).collect())
+        let set = std::env::var(MIRRORS_ENV).ok();
+        let mirrors = mirrors_from(set.as_deref());
+        if set.as_deref().is_some_and(|v| !v.trim().is_empty()) {
+            tracing::warn!("{MIRRORS_ENV} is set: beacon mirrors {mirrors:?}");
+        }
+        Self::new(QUICKNET, mirrors)
     }
 
     pub fn new(chain: &str, mirrors: Vec<String>) -> Result<Self, ClientError> {
@@ -104,6 +133,21 @@ pub fn g1_uncompressed(compressed: &[u8; 48]) -> Result<[u8; 96], ClientError> {
 
 #[cfg(test)]
 mod tests {
+    use super::{MIRRORS, mirrors_from};
+
+    #[test]
+    fn the_mirror_setting_reads_as_documented() {
+        let public: Vec<String> = MIRRORS.iter().map(|m| m.to_string()).collect();
+        assert_eq!(mirrors_from(None), public);
+        assert_eq!(mirrors_from(Some("  ")), public);
+        assert!(mirrors_from(Some("none")).is_empty());
+        assert!(mirrors_from(Some(" NONE ")).is_empty());
+        assert_eq!(
+            mirrors_from(Some("https://a.example/, ,https://b.example")),
+            vec!["https://a.example".to_string(), "https://b.example".to_string()]
+        );
+    }
+
     /// The fixture round the mint's suite and the spike use: compressed as
     /// drand published it, and uncompressed as the mint verified it.
     #[test]

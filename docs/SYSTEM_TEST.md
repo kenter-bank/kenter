@@ -389,6 +389,25 @@ then redeems it by chain to a freshly generated payee. It prints 0.10 USDC.
 > locked; each selected paid address was credited one fee, each volunteer
 > nothing.
 
+### Beacon outage (`KENTER_BEACON_MIRRORS=none`)
+
+Not a separate mode: any run that prints through the draw (Phase 8,
+`--remote`) can be made with the beacon turned off. Set
+`KENTER_BEACON_MIRRORS=none` in the environment of the harness; the run's
+own nodes inherit it. Other operators' nodes must be offline, or they will
+seed from the beacon as usual.
+
+With no beacon, nobody posts the round, so the print waits for the mint's
+fallback to open (`fallback_delay`, 600 s after the round is due) and is
+seeded by it. Expect each print to take about ten minutes longer.
+
+Every print through the draw checks how it was seeded, with the beacon on or
+off:
+
+> Assert: with the beacon on, the slot was seeded from it and has no `PRINT
+> fallback` event; with it off, the slot has one, and the print otherwise
+> passes the same checks.
+
 ### Teardown (automatic)
 
 Stop the clients, the daemons and the relay, and copy their logs into the

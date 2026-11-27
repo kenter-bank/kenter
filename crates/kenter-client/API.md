@@ -246,7 +246,7 @@ simulation, not a bad seed.
 
 | Item | Notes |
 |---|---|
-| `Beacon::quicknet()` | `QUICKNET` chain hash through `MIRRORS` |
+| `Beacon::quicknet()` | `QUICKNET` chain hash through `MIRRORS`, or the comma-separated list in `KENTER_BEACON_MIRRORS` (`MIRRORS_ENV`). `none` means no mirrors, so the client seeds by the mint's fallback; for testing it. The mint verifies every signature, so the setting cannot change a seed |
 | `Beacon::new(chain, mirrors:Vec<String>)` | 10 s HTTP timeout per request |
 | `signature(&self, round:u64) -> [u8;96]` | Tries each mirror in order; returns the G1 point **uncompressed**, as `seed_print` takes it |
 | `g1_uncompressed(&[u8;48]) -> [u8;96]` | Free fn |

@@ -163,6 +163,54 @@ pub struct FeeBurned {
     pub tx_hash: String,
 }
 
+/// The slots `contract` seeded by `seed_fallback` from `start_ledger` on:
+/// one `PRINT fallback` event each, read from the RPC's event store.
+pub async fn fallback_slots_since(contract: &str, start_ledger: u32) -> Result<Vec<u32>, String> {
+    use kenter_client::tx::{decode_scval, scval_to_u32};
+    use stellar_xdr::curr::ScVal;
+
+    let body = rpc_call(
+        "getEvents",
+        serde_json::json!({
+            "startLedger": start_ledger,
+            "filters": [{ "type": "contract", "contractIds": [contract] }],
+            "pagination": { "limit": 200 },
+        }),
+    )
+    .await?;
+    let sym = |v: &ScVal| match v {
+        ScVal::Symbol(s) => Some(s.0.to_string()),
+        _ => None,
+    };
+    let mut slots = Vec::new();
+    for ev in body["events"].as_array().into_iter().flatten() {
+        let topics: Vec<ScVal> = ev["topic"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|t| t.as_str().and_then(|b| decode_scval(b).ok()))
+            .collect();
+        if topics.len() < 2
+            || sym(&topics[0]).as_deref() != Some("PRINT")
+            || sym(&topics[1]).as_deref() != Some("fallback")
+        {
+            continue;
+        }
+        let value = decode_scval(ev["value"].as_str().unwrap_or_default())
+            .map_err(|e| format!("PRINT fallback value: {e}"))?;
+        let ScVal::Map(Some(map)) = &value else {
+            return Err(format!("PRINT fallback value is not a map: {value:?}"));
+        };
+        let slot = map
+            .0
+            .iter()
+            .find(|e| sym(&e.key).as_deref() == Some("slot_id"))
+            .ok_or("PRINT fallback has no `slot_id`")?;
+        slots.push(scval_to_u32(&slot.val).map_err(|e| e.to_string())?);
+    }
+    Ok(slots)
+}
+
 /// Every `FEE burned` event `contract` emitted from `start_ledger` on, read
 /// from the RPC's event store (`getEvents`), decoded from the XDR. Also
 /// returns how many `FEE locked` events there were, which should be none.
