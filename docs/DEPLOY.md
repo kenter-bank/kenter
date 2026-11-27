@@ -271,20 +271,54 @@ Nodes name their relays in their own config. `kenter-node` uses one
 default relay until the operator names others; see
 `DEFAULT_RELAY` in `crates/kenter-node/src/config.rs`.
 
-## Two ways to install
+## Three ways to install
 
-| | `packaging/relay/setup-relay.sh` | `scripts/vps_startup.sh` |
-|---|---|---|
-| Host | already runs nginx with TLS for the domain | a fresh Ubuntu/Debian VPS |
-| Binary | a prebuilt x86_64 Linux binary you copy over | built on the server from a git checkout |
-| Runs as | system user `kenter-relay`, hardened systemd unit | user `kenter`, plain systemd unit |
-| Identity key | `/etc/kenter-tunnler/env` (root, 0600) | `/home/kenter/kenter/.env` (0600) |
-| nginx | you configure it | written for you, including the TLS vhosts |
-| Roster gating | on (`ROSTER=` is required) | off until you set `ROSTER_CONTRACT_ID` |
+| | `packaging/relay/install-relay.sh` | `packaging/relay/setup-relay.sh` | `scripts/vps_startup.sh` |
+|---|---|---|---|
+| Host | a fresh Debian/Ubuntu VPS | already runs nginx with TLS for the domain | a fresh Ubuntu/Debian VPS |
+| Binary | a signed relay release, verified before anything runs | a prebuilt x86_64 Linux binary you copy over | built on the server from a git checkout |
+| Runs as | system user `kenter-relay`, hardened systemd unit | the same | user `kenter`, plain systemd unit |
+| Identity key | `/etc/kenter-tunnler/env` (root, 0600), made on the relay | the same | `/home/kenter/kenter/.env` (0600) |
+| nginx | written for you: base domain only, TLS, limits, no access log | you configure it | written for you, including the TLS vhosts |
+| Also | firewall, key-only SSH, SSH as a Tor onion service | nothing else | nothing else |
+| Roster gating | on (from the release) | on (`ROSTER=` is required) | off until you set `ROSTER_CONTRACT_ID` |
 
-Use `setup-relay.sh` when you can. Its unit runs with no capabilities, a
-read-only filesystem, no home directory access and a system-call filter,
-and the relay's secret never sits in a user-writable directory.
+Use `install-relay.sh` on a fresh VPS, and `setup-relay.sh` where nginx is
+already yours. Both run the relay with no capabilities, a read-only
+filesystem, no home directory access and a system-call filter, and the
+relay's secret never sits in a user-writable directory.
+
+## Install with install-relay.sh
+
+A relay release (tag `relay-vX.Y.Z`) holds the binary, the unit, the
+installer and `relay.env` (network, domain, roster), listed in a signed
+`SHA256SUMS`. On the VPS, as root:
+
+```sh
+curl -fsSLO https://github.com/kenter-bank/kenter/releases/download/relay-v0.1.0/install-relay.sh
+grep '^SIGNERS=' install-relay.sh      # must match allowed_signers in a fresh clone
+sh install-relay.sh relay-v0.1.0
+```
+
+It checks the signature on `SHA256SUMS` against the key pinned in the
+script, every file against `SHA256SUMS`, and that `RELEASE` names the tag
+(so an older release can't pose as a newer one), before installing anything.
+Then it installs the relay, gets a certificate (point the domain's A and
+AAAA records at the VPS first; it checks), writes nginx and the firewall,
+makes SSH key-only and publishes it as an onion service. It prints the
+onion address and sets a root password for the provider's console, shown
+once.
+
+| Setting (environment) | Meaning |
+|---|---|
+| `DOMAIN` | the relay's name, if not the release's; it must be a relay the wallet builds list |
+| `ONION_AUTH` | `descriptor:x25519:<base32>`: only this Tor client key can reach SSH's onion |
+| `SKIP_DNS_CHECK=1` | behind NAT, where the domain can't resolve to an address of the machine |
+
+Once you can log in through the onion, run `sh install-relay.sh --close-ssh`
+from that session to close public SSH; it refuses from any other session.
+Run the installer again with a new tag to update. The relay's key, the
+certificate and the onion are kept.
 
 ## Install with setup-relay.sh
 
@@ -366,8 +400,7 @@ upstream tunnler {
 }
 
 server {
-    listen 443 ssl;
-    http2 on;
+    listen 443 ssl http2;
     server_name relay.example.org;
 
     ssl_certificate     /etc/letsencrypt/live/relay.example.org/fullchain.pem;
