@@ -113,7 +113,11 @@ the draw. The full selection design is in
    `sig` as quicknet's BLS12-381 signature for round `R` with a pairing check,
    derives `seed = sha256("kenter:select:v1" ‖ mint ‖ slot_id ‖ sha256(sig))`,
    and opens a claim window of `claim_window` ledgers. A BLS signature is
-   unique for its round, so whoever posts it chooses nothing.
+   unique for its round, so whoever posts it chooses nothing. If nobody has
+   posted the round `fallback_delay` seconds after it was due,
+   **`seed_fallback(slot)`** seeds with
+   `sha256("kenter:select:fallback:v1" ‖ mint ‖ slot_id ‖ R)` instead, so
+   issuance survives the beacon stopping.
 3. **`claim_position(slot, a, b)`**, both signing. The contract computes
    `score = sha256(seed ‖ lower ‖ higher)` over the two addresses' XDR and
    inserts the claim in score order, keeping the lowest `2k`: `k` positions
@@ -177,8 +181,9 @@ is the one paid. End links are not paid. Then the **forfeit**: `2·node_fee`
 per interior position not yet confirmed, burned, once round `R`'s publication
 time has passed, seeded or not. The forfeit makes cancelling after the seed is
 known (to discard an unwanted draw) cost the depositor. There is no forfeit
-before round `R` is due, after a seeded window that closed short of `k`
-claims, or on an unseeded slot that expires (the beacon stalled), because in
+before round `R` is due, after a seeded window (beacon or fallback) that
+closed short of `k` claims, or on an unseeded slot that expires (the beacon
+stalled and nobody used the fallback), because in
 those cases the depositor learned nothing to exploit. Settlement plus forfeit
 never exceeds `2·node_fee·k`, the reserve `request_print` took.
 

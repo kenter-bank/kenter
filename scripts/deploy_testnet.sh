@@ -108,6 +108,7 @@ UNBONDING_LEDGERS=${UNBONDING_LEDGERS:-120960}
 # rounds (60 s, so the round does not exist yet when the request lands
 # even if ledger close time trails wall time), a 6-ledger claim window,
 # a 12-ledger serve timeout. min_node_age 0 on testnet; about a day (17280) on mainnet.
+# The fallback seed opens 600 s after the round is due, on both networks.
 BEACON_PK=${BEACON_PK:-03cf0f2896adee7eb8b5f01fcad3912212c437e0073e911fb90022d3e760183c8c4b450b6a0a6c3ac6a5776a2d1064510d1fec758c921cc22b0e17e63aaf4bcb5ed66304de9cf809bd274ca73bab4af5a6e9c76a4bc09e76eae8991ef5ece45a01a714f2edb74119a2f2b0d5a7c75ba902d163700a61bc224ededd8e63aef7be1aaf8e93d7a9718b047ccddb3eb5d68b0e5db2b6bfbb01c867749cadffca88b36c24f3012ba09fc4d3022c5c37dce0f977d3adb5d183c7477c442b1f04515273}
 BEACON_GENESIS=${BEACON_GENESIS:-1692803367}
 BEACON_PERIOD=${BEACON_PERIOD:-3}
@@ -115,7 +116,17 @@ BEACON_LEAD=${BEACON_LEAD:-20}
 CLAIM_WINDOW=${CLAIM_WINDOW:-6}
 SERVE_TIMEOUT=${SERVE_TIMEOUT:-12}
 MIN_NODE_AGE=${MIN_NODE_AGE:-0}
-SELECTION="{\"beacon_pk\":\"$BEACON_PK\",\"beacon_genesis\":$BEACON_GENESIS,\"beacon_period\":$BEACON_PERIOD,\"beacon_lead\":$BEACON_LEAD,\"claim_window\":$CLAIM_WINDOW,\"serve_timeout\":$SERVE_TIMEOUT,\"min_node_age\":$MIN_NODE_AGE}"
+FALLBACK_DELAY=${FALLBACK_DELAY:-600}
+SELECTION="{\"beacon_pk\":\"$BEACON_PK\",\"beacon_genesis\":$BEACON_GENESIS,\"beacon_period\":$BEACON_PERIOD,\"beacon_lead\":$BEACON_LEAD,\"claim_window\":$CLAIM_WINDOW,\"serve_timeout\":$SERVE_TIMEOUT,\"min_node_age\":$MIN_NODE_AGE,\"fallback_delay\":$FALLBACK_DELAY}"
+
+# The mint's fallback seed (seed_fallback) must open well inside the
+# print window, or a slot the beacon never seeds expires first. The
+# window is in ledgers and the delay in seconds: at 5 s a ledger, the
+# fallback must open in the window's first half.
+if (( BEACON_LEAD * BEACON_PERIOD + FALLBACK_DELAY >= MAX_PRINT_LEDGERS * 5 / 2 )); then
+    echo "refusing: fallback_delay $FALLBACK_DELAY s opens too late for a $MAX_PRINT_LEDGERS-ledger print window" >&2
+    exit 1
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -159,7 +170,7 @@ DEPLOYER_ADDR=$(stellar keys address "$DEPLOYER")
 say "Deploying as $DEPLOYER (${DEPLOYER_ADDR:0:8}...${DEPLOYER_ADDR: -6}) to $NETWORK"
 note "mint   : node_fee=$NODE_FEE min_pairs=$MIN_PAIRS max_pairs=$MAX_PAIRS max_print_ledgers=$MAX_PRINT_LEDGERS"
 note "roster : min_stake=$MIN_STAKE unbonding_ledgers=$UNBONDING_LEDGERS (no admin, no fee)"
-note "select : drand quicknet, lead=$BEACON_LEAD rounds claim_window=$CLAIM_WINDOW serve_timeout=$SERVE_TIMEOUT min_node_age=$MIN_NODE_AGE"
+note "select : drand quicknet, lead=$BEACON_LEAD rounds claim_window=$CLAIM_WINDOW serve_timeout=$SERVE_TIMEOUT min_node_age=$MIN_NODE_AGE fallback_delay=$FALLBACK_DELAY"
 
 # ── Build ─────────────────────────────────────────────────────────────
 say "Building contracts to wasm"

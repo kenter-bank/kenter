@@ -147,6 +147,39 @@ pays for the seed.
 drand's group key, genesis time and period are constructor parameters. Like
 every mint parameter they are immutable.
 
+#### If the beacon is down: the fallback seed
+
+If nobody has posted round `R` by `fallback_delay` seconds after it was due
+(600 s on both networks), anyone may seed the slot without the beacon:
+
+```
+seed_fallback(slot_id)
+seed = sha256("kenter:select:fallback:v1" ‖ mint address XDR ‖ slot_id (u32 BE) ‖ R (u64 BE))
+```
+
+Everything after the seed is unchanged: the claim window opens, pairs claim
+and score the same way, and the slot settles as any seeded slot does. A slot
+seeded either way refuses the other (`AlreadySeeded`).
+
+The fallback exists so that issuance does not depend on drand. If drand
+pauses, prints wait about ten minutes instead of expiring; if quicknet were
+retired, this mint keeps issuing. What it gives up is unpredictability while
+the beacon is down: the fallback seed is fixed by the slot, so it can be
+computed from the request onward. During an outage a depositor can therefore
+choose when to request, and so choose the draw. That is the steering the
+beacon exists to prevent, and it buys the same thing: fee capture, never
+another holder's funds. No caller can choose the fallback seed, so a
+coalition of nodes cannot steer it.
+
+While the beacon is up the fallback is never used: daemons post round `R`
+within seconds, long before the fallback opens. The constructor refuses a
+`fallback_delay` under 300 seconds, because a fallback open as soon as the
+round is due could race it and make every draw steerable.
+
+A daemon or wallet that cannot fetch the round waits for the fallback to
+open and seeds with it, in the same score order as it would have seeded
+from the beacon.
+
 ### 4. Claims and scoring
 
 A pair claims with `claim_position(slot_id, node_a, node_b)`. Both members
@@ -301,7 +334,7 @@ after `max_print_ledgers`) settle the same way, with one exception:
 | Before round `R` is published | Full refund. No draw exists yet |
 | Round `R` published, never seeded, **cancelled** | Forfeit (below). Anyone can fetch `R` and compute the draw, so declining to seed and cancelling is a re-roll |
 | Never seeded, **expired** | Full refund. This is the case where the beacon stalled. A depositor who withholds the seed to get here locks the deposit for the whole print window per attempt |
-| Seeded, window closed with fewer than `k` claims | Full refund. The draw could not complete |
+| Seeded (by the beacon or the fallback), window closed with fewer than `k` claims | Full refund. The draw could not complete |
 | Seeded, otherwise | Each confirmed interior link pays `node_fee` to the address that confirmed it. `2 · node_fee` is burned for every interior position not yet confirmed. The rest is refunded |
 
 "Published" uses the same arithmetic as `round_at`: the round's time is
@@ -409,20 +442,25 @@ paired with someone else, it reports that and claims nothing.
 | `serve_timeout` | Mint constructor | 12 ledgers (about 60 s) | |
 | `min_node_age` | Mint constructor | 0 on testnet, 17,280 on mainnet | Makes a freshly bought fleet useless for its first day |
 | `max_print_ledgers` | Mint constructor | 17,280 (one day) | Must exceed `claim_window` |
+| `fallback_delay` | Mint constructor | 600 s on both networks | At least 300 s. The deploy scripts also require the fallback to open in the first half of the print window |
 | Runners-up | Fixed in the mint | `k` (list cap `2k`) | Not a parameter |
 | `C` | Daemon | 3 | Advice only |
 
 The constructor refuses a zero period, lead, claim window or serve timeout, a
-claim window not shorter than `max_print_ledgers`, and a beacon key that is
-the identity or not a valid G2 point in the subgroup.
+claim window not shorter than `max_print_ledgers`, a `fallback_delay` under
+300 seconds, and a beacon key that is the identity or not a valid G2 point in
+the subgroup.
 
 ## Dependencies and limits
 
-- **drand.** If drand stops, no new print can be seeded. Notes already
-  printed are unaffected, because redemption never touches the beacon. Open
-  slots expire with a full refund. If a threshold of drand's operators
-  colluded with a depositor, they could predict seeds, which returns the
-  depositor to choosing its own pairs: fee capture, not theft.
+- **drand.** Only issuance uses the beacon; redemption, spending and
+  refunds never touch it. If drand stops, for minutes or for good, prints
+  are seeded by the fallback instead, and the draw is steerable by the
+  depositor while it is down. If a threshold of drand's operators colluded
+  with a depositor, they could predict seeds, with the same result. Either
+  way it is fee capture, not theft. A new beacon, if one is ever wanted,
+  means a new mint; the roster carries over, because the roster does not
+  name a mint.
 - **The relay.** The relay takes no part in selection, but it can refuse to
   carry traffic to a selected pair. To the depositor that looks like a dead
   node: it skips, pays a fee, and a runner-up serves.

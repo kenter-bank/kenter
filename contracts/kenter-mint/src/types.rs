@@ -138,6 +138,10 @@ pub struct SelectionConfig {
     /// Ledgers a node must have been on the roster before it may claim
     /// 0 turns the check off.
     pub min_node_age: u32,
+    /// Seconds after round `R` is due before `seed_fallback` may seed a
+    /// slot nobody has seeded from the beacon. At least
+    /// `MIN_FALLBACK_DELAY`.
+    pub fallback_delay: u64,
 }
 
 /// The roster's `Node` record, as `get_node` returns it, read here only
@@ -411,6 +415,15 @@ pub struct PrintSeededEvent {
     pub claim_deadline: u32,
     /// Interior positions to fill (`k`).
     pub positions: u32,
+}
+
+/// The slot was seeded by `seed_fallback` rather than the beacon. Published
+/// beside the ordinary `seeded` event, which carries the seed.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrintFallbackEvent {
+    pub slot_id: u32,
+    pub beacon_round: u64,
 }
 
 /// A claim was accepted at `rank` (0 is the lowest score so far).
@@ -691,6 +704,9 @@ pub enum Error {
     SelectionNotReady = 38,
     /// Every runner-up has been used.
     NoBackup = 39,
+    /// `seed_fallback` before the slot's round has been due for
+    /// `fallback_delay` seconds.
+    FallbackNotReady = 60,
 
     // Tokens
     TokenNotFound = 40,

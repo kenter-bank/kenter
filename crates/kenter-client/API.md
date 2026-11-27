@@ -129,6 +129,7 @@ print lifecycle is described in
 |----|-----|---------|
 | `request_print` | `(&mut, event_id:[u8;32], amount:i128, total_pairs:u32, first_pair:(&str,&str), last_pair:(&str,&str))` | `u32` slot_id. Names only the depositor's end pairs. Submitted with `invoke_widened` over `neighbour_slot_keys`; resent once (after a fresh simulation) if it fails on chain. |
 | `seed_print` | `(&mut, slot_id, signature:[u8;96])` | `[u8;32]` seed. Anyone may call. |
+| `seed_fallback` | `(&mut, slot_id)` | `[u8;32]` seed. For a slot unseeded at `SelectionInfo::fallback_time(beacon_round)`. Anyone may call. |
 | `register_pair` | `(&mut, partner:&StellarKeypair)` | `u32` registration ledger. Source is `node_a`, `partner` is `node_b`; cosigned, no margin. A pair may claim on prints requested after it registered. |
 | `unpair` | `(&mut)` | `String` former partner |
 | `claim_position` | `(&mut, slot_id, partner:&StellarKeypair, may_land_first:u32)` | `u32` rank (0 lowest). Cosigned with `ContentionMargin::for_claims(may_land_first)`. |
@@ -231,6 +232,9 @@ never takes their output):
   `sha256("kenter:select:v1" ‖ mint ScVal XDR ‖ slot_id BE ‖ sha256(sig))`,
   exactly as `seed_print` computes it. A daemon computes it from the beacon
   round before the slot is seeded, so it can tell whether it would claim.
+- `fallback_seed(mint_id, slot_id, round) -> [u8;32]`:
+  `sha256("kenter:select:fallback:v1" ‖ mint ScVal XDR ‖ slot_id BE ‖ round BE)`,
+  exactly as `seed_fallback` computes it. Known from the request onward.
 - `selection_score(seed, a, b) -> [u8;32]`: `sha256(seed ‖ lo ‖ hi)` over
   the two addresses' ScVal XDR in bytewise order. Lowest scores win.
 
@@ -389,8 +393,9 @@ with `InsecureRpcUrl`), `host_only()`, `network_passphrase()`.
   - `participants()`: every pair member, in order.
 - `ClaimInfo { score, pair, volunteer_a, volunteer_b }`.
 - `SelectionInfo { beacon_genesis, beacon_period, beacon_lead,
-  claim_window, serve_timeout, min_node_age }`; `round_time(round)` is the
-  unix time the round is published.
+  claim_window, serve_timeout, min_node_age, fallback_delay }`;
+  `round_time(round)` is the unix time the round is published, and
+  `fallback_time(round)` the time from which `seed_fallback` is accepted.
 - `SimResources`, `InvokeResult`, `ContentionMargin`: see `tx` above.
 
 ## `ClientError` (`error`)

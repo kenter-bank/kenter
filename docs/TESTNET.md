@@ -272,6 +272,7 @@ The `selection` argument:
 | `claim_window` | 6 ledgers (~30 s) | how long pairs may claim after the seed |
 | `serve_timeout` | 12 ledgers (~60 s) | how long a selected pair has to serve before it can be skipped |
 | `min_node_age` | 0 on testnet, 17 280 (one day) on mainnet | ledgers each address must have been on the roster before its pair may register or claim |
+| `fallback_delay` | 600 s on both | how long after a round is due a slot nobody seeded from the beacon may be seeded by `seed_fallback` |
 
 Read the deployed values back with the mint's `selection()` view.
 

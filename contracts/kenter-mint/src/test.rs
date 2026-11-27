@@ -144,6 +144,8 @@ const BEACON_LEAD: u64 = 10;
 /// Short, so the tests that use a five-ledger print window still fit one.
 const CLAIM_WINDOW: u32 = 2;
 const SERVE_TIMEOUT: u32 = 3;
+/// The contract's floor, so the tests also show the floor works.
+const FALLBACK_DELAY: u64 = 300;
 
 fn unhex<const N: usize>(h: &str) -> [u8; N] {
     let mut out = [0u8; N];
@@ -162,6 +164,7 @@ fn test_selection(env: &Env) -> SelectionConfig {
         claim_window: CLAIM_WINDOW,
         serve_timeout: SERVE_TIMEOUT,
         min_node_age: 0,
+        fallback_delay: FALLBACK_DELAY,
     }
 }
 
@@ -5026,12 +5029,15 @@ fn settlement_and_forfeit_stay_inside_the_reserve() {
 
 #[test]
 fn a_mint_with_unusable_selection_parameters_is_refused() {
-    let bad: [fn(&Env) -> SelectionConfig; 6] = [
+    let bad: [fn(&Env) -> SelectionConfig; 8] = [
         |e| SelectionConfig { beacon_period: 0, ..test_selection(e) },
         |e| SelectionConfig { beacon_lead: 0, ..test_selection(e) },
         |e| SelectionConfig { claim_window: 0, ..test_selection(e) },
         |e| SelectionConfig { serve_timeout: 0, ..test_selection(e) },
         |e| SelectionConfig { claim_window: 1000, ..test_selection(e) },
+        // A fallback open as soon as the round is due would race it.
+        |e| SelectionConfig { fallback_delay: 0, ..test_selection(e) },
+        |e| SelectionConfig { fallback_delay: FALLBACK_DELAY - 1, ..test_selection(e) },
         // The G2 generator negated is a fine point, but not the beacon's
         // key; a key that is not even on the curve must also be refused.
         |e| {
@@ -5294,6 +5300,191 @@ fn an_unseeded_slot_that_expires_refunds_in_full() {
     assert_eq!(s.mint.clear_expired_slot(&slot), 1000);
 }
 
+// ── The fallback seed (drand stops) ──
+
+/// When the fixture slot's fallback opens: its round is due at
+/// `fixture_time() + BEACON_LEAD * BEACON_PERIOD`.
+fn fallback_opens() -> u64 {
+    fixture_time() + BEACON_LEAD * BEACON_PERIOD + FALLBACK_DELAY
+}
+
+/// The fallback seed as the design defines it, computed here independently
+/// of the contract.
+fn expected_fallback_seed(s: &TestSetup, slot: u32, round: u64) -> BytesN<32> {
+    use soroban_sdk::xdr::ToXdr;
+    let mut m = Bytes::from_slice(&s.env, b"kenter:select:fallback:v1");
+    m.append(&s.mint.address.clone().to_xdr(&s.env));
+    m.extend_from_array(&slot.to_be_bytes());
+    m.extend_from_array(&round.to_be_bytes());
+    s.env.crypto().sha256(&m).to_bytes()
+}
+
+/// Request a print of `total` pairs at the fixture time, and leave it
+/// unseeded.
+fn unseeded(s: &TestSetup, d: &Address, total: u32) -> u32 {
+    s.env.ledger().set_timestamp(fixture_time());
+    s.mint
+        .request_print(d, &random_event_id(&s.env), &1000, &total, &own(d), &own(d))
+}
+
+#[test]
+fn the_fallback_waits_out_its_delay() {
+    let (s, d, _) = sel_setup(1);
+    let slot = unseeded(&s, &d, 3);
+    // Before the round, when it is due, and the last second of the delay.
+    for t in [
+        fixture_time(),
+        fixture_time() + BEACON_LEAD * BEACON_PERIOD,
+        fallback_opens() - 1,
+    ] {
+        s.env.ledger().set_timestamp(t);
+        assert_eq!(s.mint.try_seed_fallback(&slot), Err(Ok(Error::FallbackNotReady)));
+    }
+    assert!(s.mint.get_slot(&slot).unwrap().seed.is_none());
+}
+
+#[test]
+fn the_fallback_seeds_a_fixed_value_and_opens_the_window() {
+    let (s, d, _) = sel_setup(1);
+    let slot = unseeded(&s, &d, 3);
+    s.env.ledger().set_timestamp(fallback_opens());
+    let seed = s.mint.seed_fallback(&slot);
+    assert_eq!(seed, expected_fallback_seed(&s, slot, BEACON_ROUND));
+    let sl = s.mint.get_slot(&slot).unwrap();
+    assert_eq!(sl.seed, Some(seed));
+    assert_eq!(sl.claim_deadline, s.env.ledger().sequence() + CLAIM_WINDOW);
+}
+
+#[test]
+fn the_fallback_seed_does_not_depend_on_when_it_is_posted() {
+    // The same slot seeded at two different times and ledgers gets the
+    // seed the formula gives, so whoever posts it has nothing to choose.
+    let (a, da, _) = sel_setup(1);
+    let (b, db, _) = sel_setup(1);
+    let sa = unseeded(&a, &da, 3);
+    let sb = unseeded(&b, &db, 3);
+    a.env.ledger().set_timestamp(fallback_opens());
+    b.env.ledger().set_timestamp(fallback_opens() + 5000);
+    advance(&b.env, 7);
+    assert_eq!(a.mint.seed_fallback(&sa), expected_fallback_seed(&a, sa, BEACON_ROUND));
+    assert_eq!(b.mint.seed_fallback(&sb), expected_fallback_seed(&b, sb, BEACON_ROUND));
+}
+
+#[test]
+fn the_fallback_and_the_beacon_exclude_each_other() {
+    let (s, d, _) = sel_setup(1);
+    // Beacon first: the fallback is refused once it opens.
+    let first = seeded(&s, &d, 3);
+    s.env.ledger().set_timestamp(fallback_opens());
+    assert_eq!(s.mint.try_seed_fallback(&first), Err(Ok(Error::AlreadySeeded)));
+    // Fallback first: the round's signature is refused afterwards.
+    let second = unseeded(&s, &d, 3);
+    s.env.ledger().set_timestamp(fallback_opens());
+    let fb = s.mint.seed_fallback(&second);
+    assert_eq!(
+        s.mint.try_seed_print(&second, &beacon_sig(&s.env)),
+        Err(Ok(Error::AlreadySeeded))
+    );
+    // Separate tags: a beacon seed is never a fallback seed.
+    let beacon_seed = s.mint.get_slot(&first).unwrap().seed.unwrap();
+    assert_ne!(beacon_seed, expected_fallback_seed(&s, first, BEACON_ROUND));
+    assert_ne!(fb, beacon_seed);
+}
+
+#[test]
+fn two_slots_seeded_by_the_fallback_draw_differently() {
+    let (s, d, _) = sel_setup(1);
+    let a = unseeded(&s, &d, 3);
+    let b = unseeded(&s, &d, 3);
+    s.env.ledger().set_timestamp(fallback_opens());
+    assert_ne!(s.mint.seed_fallback(&a), s.mint.seed_fallback(&b));
+}
+
+#[test]
+fn a_fallback_seeded_print_selects_and_builds_like_any_other() {
+    let (s, d, ps) = sel_setup(4);
+    let slot = unseeded(&s, &d, 4); // k = 2
+    s.env.ledger().set_timestamp(fallback_opens());
+    let seed = s.mint.seed_fallback(&slot);
+    for p in &ps {
+        s.mint.claim_position(&slot, &p.node_a, &p.node_b);
+    }
+    // The two lowest scores under the fallback seed hold the positions.
+    let mut want: std::vec::Vec<(BytesN<32>, PairEntry)> = ps
+        .iter()
+        .map(|p| (expected_score(&s.env, &seed, p), p.clone()))
+        .collect();
+    want.sort_by(|x, y| x.0.cmp(&y.0));
+    advance(&s.env, CLAIM_WINDOW + 1);
+    let order = chain_order(&s, slot);
+    assert_eq!(order[1], want[0].1);
+    assert_eq!(order[2], want[1].1);
+    // The depositor's link 0, then the first selected pair's, which
+    // closes selection.
+    s.mint.confirm_link(&d, &slot, &0, &partial_key(&s.env, 90));
+    s.mint.confirm_link(&order[1].node_a, &slot, &1, &partial_key(&s.env, 1));
+    let sl = s.mint.get_slot(&slot).unwrap();
+    assert!(sl.closed);
+    assert_eq!(sl.completed_links, 2);
+    assert_eq!(sl.pairs.get(1).unwrap(), want[0].1);
+}
+
+#[test]
+fn cancelling_a_fallback_seeded_slot_forfeits_like_a_seeded_one() {
+    let (s, d, _) = sel_setup(2);
+    let slot = unseeded(&s, &d, 4); // k = 2
+    s.env.ledger().set_timestamp(fallback_opens());
+    s.mint.seed_fallback(&slot);
+    assert_eq!(s.mint.cancel_print(&d, &slot), 1000 - 2 * 10 * 2);
+}
+
+#[test]
+fn a_fallback_seeded_draw_that_could_not_fill_refunds_in_full() {
+    let (s, d, ps) = sel_setup(1);
+    let slot = unseeded(&s, &d, 4); // k = 2, one claim
+    s.env.ledger().set_timestamp(fallback_opens());
+    s.mint.seed_fallback(&slot);
+    s.mint.claim_position(&slot, &ps[0].node_a, &ps[0].node_b);
+    advance(&s.env, CLAIM_WINDOW + 1);
+    assert_eq!(s.mint.cancel_print(&d, &slot), 1000);
+}
+
+#[test]
+fn an_expired_slot_cannot_be_seeded_by_the_fallback() {
+    let s = setup_with_config(10, 3, 8, 50);
+    let d = Address::generate(&s.env);
+    mint_tokens(&s.pay_token, &d, 10_000);
+    let slot = unseeded(&s, &d, 3);
+    let created = s.mint.get_slot(&slot).unwrap().created_at;
+    s.env.ledger().set_timestamp(fallback_opens());
+    s.env.ledger().set_sequence_number(created + 51);
+    assert!(s.mint.try_seed_fallback(&slot).is_err());
+    // It still refunds in full: the beacon stalled and nobody seeded it.
+    assert_eq!(s.mint.clear_expired_slot(&slot), 1000);
+}
+
+#[test]
+fn the_fallback_publishes_a_marker_and_the_ordinary_seeded_event() {
+    let (s, d, _) = sel_setup(1);
+    let slot = unseeded(&s, &d, 3);
+    s.env.ledger().set_timestamp(fallback_opens());
+    let seed = s.mint.seed_fallback(&slot);
+    let evs = s.env.events().all();
+    let n = evs.len();
+    let topic1 = |i: u32| -> Symbol {
+        let (_, t, _) = evs.get(i).unwrap();
+        Symbol::try_from_val(&s.env, &t.get_unchecked(1)).unwrap()
+    };
+    assert_eq!(topic1(n - 2), symbol_short!("fallback"));
+    assert_eq!(topic1(n - 1), symbol_short!("seeded"));
+    let (_, _, d1) = evs.get(n - 2).unwrap();
+    let marker = PrintFallbackEvent::try_from_val(&s.env, &d1).unwrap();
+    assert_eq!(marker, PrintFallbackEvent { slot_id: slot, beacon_round: BEACON_ROUND });
+    let (_, _, d2) = evs.get(n - 1).unwrap();
+    let ev = PrintSeededEvent::try_from_val(&s.env, &d2).unwrap();
+    assert_eq!(ev.seed, seed);
+}
+
 /// The seed hashes the signature's bytes as submitted, so the
 /// host must refuse every other encoding of the same point -- or the
 /// poster could choose between seeds. Each flag bit, and each coordinate
@@ -5402,6 +5593,27 @@ fn the_seed_matches_its_published_vector() {
     std::println!("SEED_VECTOR mint={} slot={slot} seed={hex}", std::str::from_utf8(&buf).unwrap());
     assert_eq!(std::str::from_utf8(&buf).unwrap(), "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4");
     assert_eq!((slot, hex.as_str()), (0, "082624f288319fb4b4aee6f05d5d8cecbaa76623b2592c2a3c5c5a6e892b2950"));
+}
+
+/// The fallback seed's vector, pinned for `kenter-client`'s
+/// `fallback_seed` the same way.
+#[test]
+fn the_fallback_seed_matches_its_published_vector() {
+    let (s, d, _) = sel_setup(0);
+    let slot = unseeded(&s, &d, 3);
+    s.env.ledger().set_timestamp(fallback_opens());
+    let got = s.mint.seed_fallback(&slot);
+    assert_eq!(got, expected_fallback_seed(&s, slot, BEACON_ROUND));
+    let hex: std::string::String = got.to_array().iter().map(|x| std::format!("{x:02x}")).collect();
+    std::println!("FALLBACK_VECTOR slot={slot} round={BEACON_ROUND} seed={hex}");
+    assert_eq!(
+        s.mint.address.to_string(),
+        soroban_sdk::String::from_str(&s.env, "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4")
+    );
+    assert_eq!(
+        (slot, hex.as_str()),
+        (0, "293a13fd0917275d07a2a387d88da2741671dfb551314589439b6f58c2f2f2f9")
+    );
 }
 
 /// What one claim adds to a slot, and how a claim's cost grows with the

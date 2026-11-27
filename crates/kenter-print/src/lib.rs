@@ -389,7 +389,8 @@ pub struct PrintOrder {
 ///
 /// 1. Request, naming only the depositor's own end pairs.
 /// 2. Wait for the slot's beacon round, then seed it -- unless a daemon has
-///    already.
+///    already. If the beacon cannot be reached, wait for the mint's
+///    fallback to open and seed with that.
 /// 3. Wait for the claims to fix the positions. A draw the network cannot
 ///    fill is cancelled, which refunds in full.
 /// 4. Walk the chain: link 0 here, each selected pair through its relay,
@@ -536,22 +537,45 @@ async fn seed(
         tokio::time::sleep(std::time::Duration::from_secs(at - now - 5)).await;
     }
     let mut last = String::new();
-    // Up to five minutes of asking: well past the round however far the
-    // clock is off, and inside any print window.
-    for _ in 0..(300 / POLL.as_secs().max(1)) {
+    let mut told = false;
+    // Ask the beacon until the mint's fallback opens, then seed with that.
+    // A couple of minutes past the opening covers a local clock ahead of
+    // the ledger's (the mint refuses until its own time has passed).
+    let opens = sel.fallback_time(round);
+    while unix_now() <= opens + FALLBACK_GRACE {
         if read_slot(mint, slot_id).await?.seed.is_some() {
             progress("  seeded (by a node)");
             return Ok(());
         }
-        match beacon.signature(round).await {
-            Ok(sig) => match mint.seed_print(slot_id, sig).await {
+        if unix_now() >= opens {
+            match mint.seed_fallback(slot_id).await {
                 Ok(_) => {
-                    progress(&format!("  seeded with beacon round {round}"));
+                    progress("  seeded with the mint's fallback: the beacon could not be reached");
                     return Ok(());
                 }
-                Err(e) => last = format!("seed_print: {e}"),
-            },
-            Err(e) => last = e.to_string(),
+                Err(e) => last = format!("seed_fallback: {e}"),
+            }
+        } else {
+            match beacon.signature(round).await {
+                Ok(sig) => match mint.seed_print(slot_id, sig).await {
+                    Ok(_) => {
+                        progress(&format!("  seeded with beacon round {round}"));
+                        return Ok(());
+                    }
+                    Err(e) => last = format!("seed_print: {e}"),
+                },
+                Err(e) => {
+                    if !told {
+                        told = true;
+                        progress(&format!(
+                            "  the beacon cannot be reached ({e}); still trying, and the mint's \
+                             fallback opens in about {}s",
+                            opens.saturating_sub(unix_now())
+                        ));
+                    }
+                    last = e.to_string();
+                }
+            }
         }
         tokio::time::sleep(POLL).await;
     }
@@ -560,11 +584,14 @@ async fn seed(
         return Ok(());
     }
     Err(format!(
-        "slot {slot_id}: could not seed it with beacon round {round} ({last}). It is left \
-         open: a node may still seed it, and if nobody can, it expires with a full refund. \
-         Cancelling now would forfeit the positions, because the round is already public."
+        "slot {slot_id}: could not seed it with beacon round {round} or the fallback ({last}). \
+         It is left open: a node may still seed it, and if nobody can, it expires with a full \
+         refund. Cancelling now would forfeit the positions, because the round is already public."
     ))
 }
+
+/// Seconds past the fallback's opening that [`seed`] keeps trying.
+const FALLBACK_GRACE: u64 = 120;
 
 /// Get position `i`'s link built, skipping selected pairs that do not
 /// serve, and return the extended partial.

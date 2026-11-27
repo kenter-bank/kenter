@@ -69,7 +69,8 @@ MIN_STAKE=1500000000           # 150 XLM per node address
 UNBONDING_LEDGERS=120960       # one week
 # Node selection: drand quicknet (group key in Soroban's G2 encoding,
 # genesis, period), 20-round lead, 6-ledger claim window, 12-ledger serve
-# timeout, nodes must be a day old to be drawn.
+# timeout, nodes must be a day old to be drawn, and the fallback seed
+# opens 600 s after a round is due if nobody has posted it.
 BEACON_PK=03cf0f2896adee7eb8b5f01fcad3912212c437e0073e911fb90022d3e760183c8c4b450b6a0a6c3ac6a5776a2d1064510d1fec758c921cc22b0e17e63aaf4bcb5ed66304de9cf809bd274ca73bab4af5a6e9c76a4bc09e76eae8991ef5ece45a01a714f2edb74119a2f2b0d5a7c75ba902d163700a61bc224ededd8e63aef7be1aaf8e93d7a9718b047ccddb3eb5d68b0e5db2b6bfbb01c867749cadffca88b36c24f3012ba09fc4d3022c5c37dce0f977d3adb5d183c7477c442b1f04515273
 BEACON_GENESIS=1692803367
 BEACON_PERIOD=3
@@ -77,7 +78,8 @@ BEACON_LEAD=20
 CLAIM_WINDOW=6
 SERVE_TIMEOUT=12
 MIN_NODE_AGE=17280
-SELECTION="{\"beacon_pk\":\"$BEACON_PK\",\"beacon_genesis\":$BEACON_GENESIS,\"beacon_period\":$BEACON_PERIOD,\"beacon_lead\":$BEACON_LEAD,\"claim_window\":$CLAIM_WINDOW,\"serve_timeout\":$SERVE_TIMEOUT,\"min_node_age\":$MIN_NODE_AGE}"
+FALLBACK_DELAY=600
+SELECTION="{\"beacon_pk\":\"$BEACON_PK\",\"beacon_genesis\":$BEACON_GENESIS,\"beacon_period\":$BEACON_PERIOD,\"beacon_lead\":$BEACON_LEAD,\"claim_window\":$CLAIM_WINDOW,\"serve_timeout\":$SERVE_TIMEOUT,\"min_node_age\":$MIN_NODE_AGE,\"fallback_delay\":$FALLBACK_DELAY}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -240,7 +242,8 @@ cat >&2 <<EOF
     roster             ${ROSTER_ID:-<the roster deployed above>}
     max_print_ledgers  $MAX_PRINT_LEDGERS
     selection          drand quicknet, lead $BEACON_LEAD, claim_window $CLAIM_WINDOW,
-                       serve_timeout $SERVE_TIMEOUT, min_node_age $MIN_NODE_AGE
+                       serve_timeout $SERVE_TIMEOUT, min_node_age $MIN_NODE_AGE,
+                       fallback_delay $FALLBACK_DELAY s
 EOF
 if [ "$DRY_RUN" = "1" ]; then
     note "dry run: not deploying. Commands that would run:"
@@ -329,11 +332,12 @@ expect "mint pay_token" "$USDC_SAC" "$MINT_ID" pay_token
 expect "mint roster" "$ROSTER_ID" "$MINT_ID" roster
 sel=$(read_call VERIFY "$MINT_ID" selection)
 for f in "beacon_genesis:$BEACON_GENESIS" "beacon_period:$BEACON_PERIOD" "beacon_lead:$BEACON_LEAD" \
-         "claim_window:$CLAIM_WINDOW" "serve_timeout:$SERVE_TIMEOUT" "min_node_age:$MIN_NODE_AGE"; do
+         "claim_window:$CLAIM_WINDOW" "serve_timeout:$SERVE_TIMEOUT" "min_node_age:$MIN_NODE_AGE" \
+         "fallback_delay:$FALLBACK_DELAY"; do
     [[ $sel == *"$f"[,}]* ]] || die "mint selection on chain does not have $f: $sel"
 done
 [[ ${sel,,} == *"$BEACON_PK"* ]] || die "mint selection on chain has a different beacon key"
-note "mint selection matches (beacon key, genesis, period, lead, windows, min_node_age)"
+note "mint selection matches (beacon key, genesis, period, lead, windows, min_node_age, fallback_delay)"
 
 # ── Record ───────────────────────────────────────────────────────────
 ledger=$(rpc_json "$VERIFY_RPC_URL" getLatestLedger | grep -oE '"sequence":[0-9]+' | cut -d: -f2)

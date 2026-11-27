@@ -144,6 +144,20 @@ const CLAIM_TAG: &[u8] = b"kntr_v1:redeem:claim";
 /// Domain tag for a slot's selection seed.
 const SELECT_TAG: &[u8] = b"kenter:select:v1";
 
+/// Domain tag for a seed set by `seed_fallback`. Distinct from
+/// `SELECT_TAG`, so a fallback seed can never equal a beacon seed.
+const FALLBACK_TAG: &[u8] = b"kenter:select:fallback:v1";
+
+/// The shortest `fallback_delay` a deployment may choose, in seconds.
+///
+/// The fallback seed is known from the moment a slot is requested, so if
+/// it became usable as soon as round `R` is due, whoever preferred it
+/// could post it in the same ledger as the round and win the race about
+/// half the time: the draw would be steerable whenever the beacon is up.
+/// Five minutes is about sixty ledgers in which the round, once out, can
+/// be posted first; daemons post it within seconds.
+const MIN_FALLBACK_DELAY: u64 = 300;
+
 /// The beacon scheme's hash-to-curve tag: drand `bls-unchained-g1-rfc9380`
 /// (quicknet), RFC 9380 on G1. Part of the scheme, not of the chain, so it
 /// is fixed here rather than taken as a parameter.
@@ -306,6 +320,14 @@ impl KenterMint {
             || selection.serve_timeout == 0
             || selection.claim_window >= max_print_ledgers
         {
+            panic_with_error!(&e, Error::InvalidConfig);
+        }
+        // A short fallback delay makes every draw steerable, not only
+        // those during an outage (`MIN_FALLBACK_DELAY`). A long one only
+        // lets slots expire before the fallback opens, which is today's
+        // behaviour without it, so the upper bound is the deploy
+        // script's to check against the print window.
+        if selection.fallback_delay < MIN_FALLBACK_DELAY {
             panic_with_error!(&e, Error::InvalidConfig);
         }
         // The identity is in the subgroup, and under it the identity
@@ -560,24 +582,52 @@ impl KenterMint {
         m.extend_from_array(&e.crypto().sha256(&signature.into()).to_array());
         let seed = e.crypto().sha256(&m).to_bytes();
 
-        let deadline = e
-            .ledger()
-            .sequence()
-            .saturating_add(config.selection.claim_window);
-        slot.seed = Some(seed.clone());
-        slot.claim_deadline = deadline;
-        Self::save_slot(&e, &slot, &config);
+        Self::set_seed(&e, &mut slot, &config, seed.clone());
+        Ok(seed)
+    }
+
+    /// Seed a slot the beacon never seeded, once its round has been due for
+    /// `fallback_delay` seconds. Anyone may call it, and the seed is fixed
+    /// by the slot, so the caller has nothing to choose.
+    ///
+    /// **This keeps issuance alive if drand stops**, for minutes or for
+    /// good; without it every print would wait out its window and be
+    /// refunded. The price is that the fallback seed is computable from
+    /// the request onward: while the beacon is down, a depositor can pick
+    /// the moment they request, and so their draw. That buys fee capture,
+    /// the same as steering always did (`docs/architecture/
+    /// node-selection.md`), never another holder's funds. While the beacon
+    /// is up, round `R` is posted long before the fallback opens, so the
+    /// fallback is never used.
+    ///
+    /// Everything after the seed is unchanged: claims, the window, and the
+    /// forfeit, which treats a fallback-seeded slot as seeded.
+    pub fn seed_fallback(e: Env, slot_id: u32) -> Result<BytesN<32>, Error> {
+        let mut slot = Self::live_slot(&e, slot_id)?;
+        let config = Self::get_config(&e);
+        if slot.seed.is_some() {
+            return Err(Error::AlreadySeeded);
+        }
+        let opens = Self::round_time(&config.selection, slot.beacon_round)
+            .saturating_add(config.selection.fallback_delay);
+        if e.ledger().timestamp() < opens {
+            return Err(Error::FallbackNotReady);
+        }
+
+        let mut m = Bytes::from_slice(&e, FALLBACK_TAG);
+        m.append(&e.current_contract_address().to_xdr(&e));
+        m.extend_from_array(&slot_id.to_be_bytes());
+        m.extend_from_array(&slot.beacon_round.to_be_bytes());
+        let seed = e.crypto().sha256(&m).to_bytes();
 
         e.events().publish(
-            (symbol_short!("PRINT"), symbol_short!("seeded")),
-            PrintSeededEvent {
+            (symbol_short!("PRINT"), symbol_short!("fallback")),
+            PrintFallbackEvent {
                 slot_id,
                 beacon_round: slot.beacon_round,
-                seed: seed.clone(),
-                claim_deadline: deadline,
-                positions: slot.total_pairs - 2,
             },
         );
+        Self::set_seed(&e, &mut slot, &config, seed.clone());
         Ok(seed)
     }
 
@@ -2117,6 +2167,30 @@ impl KenterMint {
     fn remove_slot(e: &Env, slot_id: u32) {
         e.storage().persistent().remove(&DataKey::Slot(slot_id));
         e.storage().temporary().remove(&DataKey::Draw(slot_id));
+    }
+
+    /// Record `seed`, open the claim window, and announce it. Shared by
+    /// both ways of seeding, so a fallback-seeded slot is indistinguishable
+    /// from a beacon-seeded one from here on.
+    fn set_seed(e: &Env, slot: &mut PrintSlot, config: &MintConfig, seed: BytesN<32>) {
+        let deadline = e
+            .ledger()
+            .sequence()
+            .saturating_add(config.selection.claim_window);
+        slot.seed = Some(seed.clone());
+        slot.claim_deadline = deadline;
+        Self::save_slot(e, slot, config);
+
+        e.events().publish(
+            (symbol_short!("PRINT"), symbol_short!("seeded")),
+            PrintSeededEvent {
+                slot_id: slot.slot_id,
+                beacon_round: slot.beacon_round,
+                seed,
+                claim_deadline: deadline,
+                positions: slot.total_pairs - 2,
+            },
+        );
     }
 
     /// The unix time at which `round` is published.

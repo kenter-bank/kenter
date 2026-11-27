@@ -14,7 +14,7 @@ pub use beacon::Beacon;
 pub use error::ClientError;
 pub use mint::{
     ClaimInfo, MintClient, SelectionInfo, SlotInfo, TokenInfo, TokenMode, TokenState,
-    selection_score, selection_seed,
+    fallback_seed, selection_score, selection_seed,
 };
 pub use network::{NetworkConfig, Overrides, Profile};
 pub use roster::{NodeInfo, RosterClient};

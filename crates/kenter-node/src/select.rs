@@ -28,6 +28,9 @@
 //!   (`selection_seed`), so a node scores itself first. Among the nodes that
 //!   would claim, the lower the score, the sooner a node seeds. The slot is
 //!   re-read just before sending, so usually exactly one node pays.
+//!   If the beacon cannot be fetched, the same order applies under the
+//!   mint's fallback seed (`fallback_seed`) once it opens, so issuance
+//!   continues while drand is down.
 //!
 //! The real price of a flood is the mint's forfeit, which the person
 //! opening the slots pays. This allowance only makes sure a flood cannot
@@ -49,8 +52,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use kenter_client::{
-    Beacon, MintClient, RosterClient, SelectionInfo, SlotInfo, TxBuilder, selection_score,
-    selection_seed,
+    Beacon, MintClient, RosterClient, SelectionInfo, SlotInfo, TxBuilder, fallback_seed,
+    selection_score, selection_seed,
 };
 
 use crate::chain::{Chain, LOW_BALANCE, spendable};
@@ -526,34 +529,47 @@ pub async fn run(
                 if unix_now() < due {
                     continue;
                 }
+                // The round's signature, if a mirror has it. A failed fetch
+                // is retried next tick, up to `SEED_FETCHES`.
                 let sig = match signatures.get(&id) {
-                    Some(s) => *s,
+                    Some(s) => Some(*s),
                     None => {
                         let n = fetches.entry(id).or_insert(0);
                         if *n >= SEED_FETCHES {
-                            continue;
-                        }
-                        *n += 1;
-                        // A failed fetch is retried next tick.
-                        match beacon.signature(slot.beacon_round).await {
-                            Ok(s) => {
-                                signatures.insert(id, s);
-                                s
-                            }
-                            Err(e) => {
-                                tracing::debug!(slot = id, "beacon: {e}");
-                                continue;
+                            None
+                        } else {
+                            *n += 1;
+                            match beacon.signature(slot.beacon_round).await {
+                                Ok(s) => {
+                                    signatures.insert(id, s);
+                                    Some(s)
+                                }
+                                Err(e) => {
+                                    tracing::debug!(slot = id, "beacon: {e}");
+                                    None
+                                }
                             }
                         }
                     }
                 };
-                let Ok(would_be) = selection_seed(&net.mint, id, &sig) else { continue };
+                // Without the round, only the mint's fallback can seed, and
+                // only once it opens: the beacon is down, or unreachable from
+                // here and nobody else has posted it in that time.
+                let fallback_due = sel.fallback_time(slot.beacon_round) + SEED_GRACE.as_secs();
+                let (would_be, start) = match &sig {
+                    Some(sig) => (selection_seed(&net.mint, id, sig), due),
+                    None if unix_now() >= fallback_due => {
+                        (fallback_seed(&net.mint, id, slot.beacon_round), fallback_due)
+                    }
+                    None => continue,
+                };
+                let Ok(would_be) = would_be else { continue };
                 let Ok(score) = selection_score(would_be, &own, &partner) else { continue };
                 if !worth_claiming(slot, &score, ledger, pairs_on_roster, share) {
                     continue;
                 }
                 let p = threshold(slot, pairs_on_roster, share);
-                let my_turn = due + (turn(&score, p) * SEED_SPREAD.as_secs_f64()) as u64;
+                let my_turn = start + (turn(&score, p) * SEED_SPREAD.as_secs_f64()) as u64;
                 if unix_now() < my_turn {
                     continue;
                 }
@@ -564,10 +580,14 @@ pub async fn run(
                 seeded_by_us.insert(id);
                 let _one = own_lock.lock().await;
                 let _ = submitter.tx_mut().refresh_sequence().await;
-                match submitter.seed_print(id, sig).await {
+                let sent = match sig {
+                    Some(sig) => submitter.seed_print(id, sig).await,
+                    None => submitter.seed_fallback(id).await,
+                };
+                match sent {
                     Ok(_) => {
                         regular.spend(SEED_COST);
-                        tracing::info!(slot = id, "seeded");
+                        tracing::info!(slot = id, fallback = sig.is_none(), "seeded");
                     }
                     Err(e) => {
                         // Sent and failed still cost the fee.

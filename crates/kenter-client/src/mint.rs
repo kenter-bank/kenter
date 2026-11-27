@@ -115,6 +115,20 @@ impl MintClient {
             .and_then(scval_to_bytes32)
     }
 
+    /// Seed `slot_id` with the mint's fallback seed, for a slot nobody
+    /// seeded from the beacon by `SelectionInfo::fallback_time`. Anyone
+    /// may call it; the seed is fixed by the slot ([`fallback_seed`]).
+    /// Returns the seed.
+    pub async fn seed_fallback(&mut self, slot_id: u32) -> Result<[u8; 32], ClientError> {
+        let args = vec![u32_to_scval(slot_id)];
+        let result = self.tx.invoke(&self.contract_id, "seed_fallback", args).await?;
+        result
+            .return_value
+            .as_ref()
+            .ok_or(ClientError::MissingReturnValue)
+            .and_then(scval_to_bytes32)
+    }
+
     /// Claim an interior position on `slot_id` for this client's pair: the
     /// source account is `node_a` and `partner` is `node_b`, and both sign
     /// (`TxBuilder::invoke_cosigned`). Returns the claim's rank, 0 lowest.
@@ -238,6 +252,7 @@ impl MintClient {
             claim_window: scval_to_u32(field(map, "claim_window")?)?,
             serve_timeout: scval_to_u32(field(map, "serve_timeout")?)?,
             min_node_age: scval_to_u32(field(map, "min_node_age")?)?,
+            fallback_delay: scval_to_u64(field(map, "fallback_delay")?)?,
         })
     }
 
@@ -1351,12 +1366,20 @@ pub struct SelectionInfo {
     pub claim_window: u32,
     pub serve_timeout: u32,
     pub min_node_age: u32,
+    /// Seconds after a slot's round is due before `seed_fallback` opens.
+    pub fallback_delay: u64,
 }
 
 impl SelectionInfo {
     /// The unix time at which `round` is published.
     pub fn round_time(&self, round: u64) -> u64 {
         self.beacon_genesis + round.saturating_sub(1) * self.beacon_period
+    }
+
+    /// The unix time from which a slot whose round is `round`, still
+    /// unseeded, may be seeded by `seed_fallback`.
+    pub fn fallback_time(&self, round: u64) -> u64 {
+        self.round_time(round).saturating_add(self.fallback_delay)
     }
 }
 
@@ -1379,6 +1402,28 @@ pub fn selection_seed(mint_id: &str, slot_id: u32, signature: &[u8; 96]) -> Resu
     h.update(mint_xdr);
     h.update(slot_id.to_be_bytes());
     h.update(Sha256::digest(signature));
+    Ok(h.finalize().into())
+}
+
+/// A slot's fallback seed, exactly as `seed_fallback` computes it:
+/// `sha256("kenter:select:fallback:v1" || mint || slot_id || round)`, with
+/// `mint` the contract address's `ScVal` XDR and `slot_id` and the slot's
+/// beacon `round` big-endian.
+///
+/// It is known from the request onward, so a daemon can tell at once
+/// whether it would claim under it.
+pub fn fallback_seed(mint_id: &str, slot_id: u32, round: u64) -> Result<[u8; 32], ClientError> {
+    use sha2::{Digest, Sha256};
+    let contract = stellar_strkey::Contract::from_string(mint_id)
+        .map_err(|e| ClientError::InvalidAddress(e.to_string()))?;
+    let mint_xdr = ScVal::Address(ScAddress::Contract(ContractId(Hash(contract.0))))
+        .to_xdr(Limits::none())
+        .map_err(|e| ClientError::XdrEncode(e.to_string()))?;
+    let mut h = Sha256::new();
+    h.update(b"kenter:select:fallback:v1");
+    h.update(mint_xdr);
+    h.update(slot_id.to_be_bytes());
+    h.update(round.to_be_bytes());
     Ok(h.finalize().into())
 }
 
@@ -1970,6 +2015,19 @@ mod score_tests {
         .unwrap();
         let seed = super::selection_seed("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4", 0, &sig).unwrap();
         assert_eq!(hex::encode(seed), "082624f288319fb4b4aee6f05d5d8cecbaa76623b2592c2a3c5c5a6e892b2950");
+    }
+
+    /// The vector `the_fallback_seed_matches_its_published_vector` pins in
+    /// the mint's suite.
+    #[test]
+    fn the_fallback_seed_matches_the_mints() {
+        let seed = super::fallback_seed(
+            "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+            0,
+            33_971_844,
+        )
+        .unwrap();
+        assert_eq!(hex::encode(seed), "293a13fd0917275d07a2a387d88da2741671dfb551314589439b6f58c2f2f2f9");
     }
 
     #[test]

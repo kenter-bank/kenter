@@ -121,10 +121,12 @@ drand-seeded node draw described in
 | `CLAIM_WINDOW` | `claim_window` | 6 | ledgers pairs may claim after the seed |
 | `SERVE_TIMEOUT` | `serve_timeout` | 12 | ledgers before a silent selected pair may be skipped |
 | `MIN_NODE_AGE` | `min_node_age` | 0 | ledgers an address must be on the roster before its pair registers or claims. 0 suits testnet; mainnet uses 17 280 (about a day) |
+| `FALLBACK_DELAY` | `fallback_delay` | 600 | seconds after a round is due before `seed_fallback` may seed a slot nobody seeded from the beacon. At least 300; the script also refuses a delay that would open after the first half of the print window |
 
 The constructor panics with `InvalidConfig` on a zero period, lead, claim
 window or serve timeout, on a claim window not shorter than
-`max_print_ledgers`, on the identity point as beacon key, and on a key
+`max_print_ledgers`, on a `fallback_delay` under 300 seconds, on the
+identity point as beacon key, and on a key
 that is not a G2 point in the subgroup. drand quicknet is the same public
 chain on testnet and mainnet.
 
