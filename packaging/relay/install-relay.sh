@@ -412,7 +412,7 @@ else
     printf 'root:%s\n' "$pw" | chpasswd
     touch "$STATE/.console-password"
     echo "   root's password, for the provider's console only (SSH takes keys only)."
-    echo "   It is shown once. Store it in the VeraCrypt container now:"
+    echo "   It is shown once. Store it somewhere safe now:"
     echo
     echo "       $pw"
     pw=
