@@ -80,7 +80,7 @@ calls it once every link is confirmed and before the slot expires. It
 commits two things:
 
 - **`chain_hash`** = SHA-256 of the note's canonical chain data, computed by
-  `kenter_crypto::chain_data::chain_hash`. Path B redemption must present a
+  `kenter_crypto::chain_data::chain_hash`. Redemption must present a
   chain that hashes to it. Without that commitment, a chain could be built
   from public data alone (the ephemeral key, event id and pair count are all
   public) and the escrow drained by someone who never held the note.
@@ -152,16 +152,14 @@ to know how many ways a note has left their machine.
 
 ## 4. Spending and redeeming
 
-**Redeem (Path B)** — `redeem_by_chain` / `redeem_by_chain_owned`. The
-desktop client uses this: offline, node-free, needing only the note file and,
-in spend mode, the owner key. The chain becomes public.
+**Redeem** — `redeem_by_chain` / `redeem_by_chain_owned`. Offline and
+node-free, needing only the note file and, in spend mode, the owner key. The
+chain becomes public.
 
 **Spend** — `spend` moves a spend-mode note to a new owner without redeeming
 it. See [Bearer and spend mode](/architecture/spend-mode).
 
-**Redeem (Path A)** — `redeem_by_key` reconstructs the ephemeral secret from
-shards collected from the printing pairs. The chain stays private, but it
-needs the network live and a combiner. No client drives it.
+The mint also has by-key entry points (`redeem_by_key`, `redeem_by_key_owned`), which rebuild the note's key from shards held by the pairs that printed it. Kenter's clients do not use them, and nodes do not serve shards.
 
 Every redemption also proves possession of the note:
 
@@ -171,7 +169,7 @@ Every redemption also proves possession of the note:
 | Spend mode | Owner signature, from the owner key | See [Bearer and spend mode](/architecture/spend-mode#what-the-owner-signs) |
 
 The recipient is in both digests, so a signature left in a failed transaction
-is useless to anyone else. This is what makes Path B safe: presenting the
+is useless to anyone else. This is what makes redeeming by chain safe: presenting the
 chain publishes it, and a failed transaction publishes it while the note
 stays live, but the chain alone does not redeem.
 

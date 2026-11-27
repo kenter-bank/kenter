@@ -29,7 +29,7 @@ keypair, so every request carries what is needed to answer it.
 | Item | Purpose |
 |---|---|
 | `PairNodeContext` | A node's own keypair and its shard rate limiter |
-| `handle_shard_request(…)` | Serve `/kenter/shard` |
+| `handle_shard_request(…)` | Answer a shard request (not routed by nodes; see below) |
 | `ExtendNodeContext` | Both pair keypairs, for extending a token |
 | `handle_extend_request(…)` | Serve `/kenter/extend` |
 | `ShardRateLimiter` | Serves each `(event_id, link_index)` at most once per 15 minutes |
@@ -43,18 +43,17 @@ And the client side of the same exchanges:
 | `last_link_of(…)` | The most recent link on a token |
 | `serialize_chain_link(…)` | Link to bytes |
 
-::: tip A shard handler needs only its own secret
-`handle_shard_request` re-derives the pair's shard by ECDH against the
-partner public key **carried in the `ChainLink`**. No node ever holds enough
-to reconstruct a note, and no node stores a shard between requests.
+::: tip Nodes do not serve shards
+`KenterHandler` refuses `/kenter/shard` with HTTP 404 unless it is built
+`with_shard_service()`, which only the in-process shard test does. Shards
+serve redemption by key, which Kenter's clients do not use.
 :::
 
-Before it serves a shard, a node verifies the holder's signature over the
-combiner key the shard will be encrypted to (`unauthorized` otherwise), so
-a relay cannot substitute its own key. `ShardRateLimiter` then makes sure a
-link is served once per redemption window: a relay cannot collect a link's
-shard repeatedly under different combiner keys. A link is marked only once
-the request has passed those checks, so a stranger cannot burn it.
+The shard code stays because the mint has the by-key entry points and the
+scheme is tested. `handle_shard_request` re-derives the pair's shard by ECDH
+against the partner key carried in the `ChainLink`, verifies the holder's
+signature over the combiner key (`unauthorized` otherwise), and serves each
+link at most once per 15 minutes (`ShardRateLimiter`).
 
 ## `tunnel` — the relay client
 
@@ -67,7 +66,7 @@ the request has passed those checks, so a stranger cannot burn it.
 | `IncomingRequest` | A request arriving through the tunnel |
 | `RequestHandler` | Trait: handle an incoming request |
 | `LinkConfirmer` | Trait: confirm a link on-chain |
-| `KenterHandler` | The standard handler — health, shard, extend |
+| `KenterHandler` | The standard handler — health and extend; shard only `with_shard_service()` |
 
 `LinkConfirmer` is a separate trait because confirming a link is a **chain
 write**, and this crate stays chain-free; `kenter-node` supplies the Soroban

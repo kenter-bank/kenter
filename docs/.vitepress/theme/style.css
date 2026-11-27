@@ -1,0 +1,105 @@
+/*
+ * The app's palette, taken from its skins (crates/kenter-ui/skins/kenter),
+ * so the site looks like the wallet. The app is dark only, and so is the
+ * site (appearance: 'force-dark' in config.mts).
+ *
+ *   window background  #0e0f14   sidebar  #0f111a   panels  #161822
+ *   raised / borders   #1b1e2b, #232741
+ *   accent             #4fe3ba   accent edge  #39d0a7   on accent  #06231c
+ *   text               #d3d7e3   muted  #8b93a7, #7f869a
+ *   danger  #e07a7a    warning  #e0a870
+ */
+:root,
+.dark {
+  --vp-c-bg: #0e0f14;
+  --vp-c-bg-alt: #0f111a;
+  --vp-c-bg-elv: #161822;
+  --vp-c-bg-soft: #161822;
+
+  --vp-c-border: #232741;
+  --vp-c-divider: #1b1e2b;
+  --vp-c-gutter: #0e0f14;
+
+  --vp-c-text-1: #d3d7e3;
+  --vp-c-text-2: #8b93a7;
+  --vp-c-text-3: #7f869a;
+
+  --vp-c-brand-1: #4fe3ba;
+  --vp-c-brand-2: #39d0a7;
+  --vp-c-brand-3: #39d0a7;
+  --vp-c-brand-soft: rgba(79, 227, 186, 0.14);
+
+  --vp-c-tip-1: #4fe3ba;
+  --vp-c-tip-soft: rgba(79, 227, 186, 0.14);
+  --vp-c-warning-1: #e0a870;
+  --vp-c-warning-soft: rgba(224, 168, 112, 0.14);
+  --vp-c-danger-1: #e07a7a;
+  --vp-c-danger-soft: rgba(224, 122, 122, 0.14);
+
+  --vp-button-brand-bg: #4fe3ba;
+  --vp-button-brand-border: #4fe3ba;
+  --vp-button-brand-text: #06231c;
+  --vp-button-brand-hover-bg: #39d0a7;
+  --vp-button-brand-hover-border: #39d0a7;
+  --vp-button-brand-hover-text: #06231c;
+  --vp-button-brand-active-bg: #39d0a7;
+  --vp-button-brand-active-text: #06231c;
+
+  --vp-button-alt-bg: #161822;
+  --vp-button-alt-border: #232741;
+  --vp-button-alt-text: #d3d7e3;
+  --vp-button-alt-hover-bg: #1b1e2b;
+  --vp-button-alt-hover-border: #39d0a7;
+  --vp-button-alt-hover-text: #ffffff;
+
+  --vp-code-bg: #161822;
+  --vp-code-block-bg: #0f111a;
+  --vp-custom-block-tip-bg: rgba(79, 227, 186, 0.08);
+
+  --vp-home-hero-name-color: #4fe3ba;
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgba(79, 227, 186, 0.22) 0%,
+    rgba(14, 15, 20, 0) 70%
+  );
+  --vp-home-hero-image-filter: blur(48px);
+}
+
+/* The logo is a square skin; give it room on the landing page. */
+.VPHero .image-src {
+  max-width: 220px;
+  max-height: 220px;
+}
+@media (min-width: 960px) {
+  .VPHero .image-src {
+    max-width: 300px;
+    max-height: 300px;
+  }
+}
+
+.VPFeature {
+  background-color: #161822;
+  border-color: #232741;
+}
+
+/* The prose under the features on the landing page. */
+.kenter-home {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+@media (min-width: 640px) {
+  .kenter-home {
+    padding: 48px 48px 96px;
+  }
+}
+.kenter-home h2 {
+  margin-top: 32px;
+  font-size: 20px;
+  color: #d3d7e3;
+}
+.kenter-home p {
+  max-width: 680px;
+  color: #8b93a7;
+  line-height: 1.7;
+}

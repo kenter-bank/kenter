@@ -6,8 +6,14 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 export default withMermaid(
   defineConfig({
     title: 'Kenter',
-    description: 'Documentation for the Kenter workspace',
+    description: 'Bearer notes on Stellar: open-source, non-custodial, backed by USDC in an adminless contract.',
     lang: 'en',
+    // The app is dark only; the site matches it (theme/style.css).
+    appearance: 'force-dark',
+    // The logo is the app's own skin, copied in at build time
+    // (package.json, copy-logo) so there is one source of truth.
+    head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]],
+    mermaid: { theme: 'dark' },
     // Served from a file:// build as well as a dev server, so links must
     // not assume a domain.
     base: '/',
@@ -23,6 +29,8 @@ export default withMermaid(
     ignoreDeadLinks: [/^\.\.\/\.\.\/crates/, /^\.\.\/\.\.\/contracts/],
 
     themeConfig: {
+      logo: '/logo.svg',
+      socialLinks: [{ icon: 'github', link: 'https://github.com/kenter-bank/kenter' }],
       nav: [
         { text: 'Architecture', link: '/architecture/overview' },
         { text: 'Reference', link: '/reference/index' },
@@ -34,7 +42,7 @@ export default withMermaid(
         {
           text: 'Start here',
           items: [
-            { text: 'What Kenter is', link: '/index' },
+            { text: 'What Kenter is', link: '/what-is-kenter' },
             { text: 'Reading guide', link: '/reading-guide' },
           ],
         },

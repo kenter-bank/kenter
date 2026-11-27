@@ -76,7 +76,6 @@ A node serves three endpoints:
 |---|---|
 | `/kenter/health` | Liveness; reports the pair's two addresses |
 | `/kenter/extend` | Printing: extends a partial token with one dual-signed link, then records the link on-chain with `confirm_link` |
-| `/kenter/shard` | Redemption through nodes: re-derives this pair's shard by ECDH against the partner key carried in the `ChainLink` |
 
 A print opens and closes with the depositor's own pairs, whose keys never
 leave the depositor's machine. That is what keeps a note out of reach of any

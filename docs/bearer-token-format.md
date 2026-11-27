@@ -23,15 +23,15 @@ redeemed is in [Tokens and their lifecycle](/architecture/tokens).
 ```
           PRINTING                              TRANSFER            REDEMPTION
           ────────                              ────────            ──────────
- request_print         walk the chain            note moves          Path B: present
+ request_print         walk the chain            note moves          present the
  (depositor names  ──► link 0: depositor     ──► off-ledger     ──►  chain + claim
   its end pairs;       link 1..k: selected       as a file:          signature;
   drand seeds the      pairs, each adds a        QR, paper,          contract checks
   draw; pairs claim)   dual-signed link          message, card       the commitment
                        link k+1: depositor
-                       closes it locally         (spend mode:        Path A: pairs
-                                                  one `spend`        re-derive shards
-                       assemble note, generate    transaction per    for a combiner
+                       closes it locally         (spend mode:
+                                                  one `spend`
+                       assemble note, generate    transaction per
                        claim key, register        transfer)
                        chain_hash + claim key
 ```
@@ -236,7 +236,7 @@ names. Both require a proof of possession bound to that recipient:
 - **Spend mode:** a signature from the current owner key, described in
   [Bearer and spend mode](/architecture/spend-mode#what-the-owner-signs).
 
-### Path B: by chain (used by the client)
+### By chain
 
 The holder submits the canonical chain data:
 
@@ -255,58 +255,21 @@ chain from their own keys and drain the escrow. The claim signature is what
 keeps a published chain from being reused: a failed redemption publishes the
 chain while the note stays live, but the chain alone does not redeem.
 
-### Path A: by key
+### By key
 
-Path A reconstructs `s` and signs with it. It is built in `kenter-crypto`
-and the mint, and no client drives it.
-
-**1. Redemption request.** The holder creates a signed `RedemptionRequest`:
-
-```
-token, token_hash, holder_address,
-combiner_public_key   (bound into the signature),
-nonce (32 random bytes), timestamp
-
-signed: "kntr_v1:redemption:request" ‖ token_hash ‖ holder_address ‖
-        combiner_public_key ‖ nonce ‖ timestamp
-```
-
-Binding the combiner key into the signature stops a relay substituting its
-own combiner to intercept shards. Pair nodes check that the combiner key in
-the shard request matches the signed one.
-
-**2. Shard collection.** For each link, one node of the pair:
-
-```
-0. Checks freshness (at most 300 s old, at most 60 s in the future)
-   and the rate limit (one response per (event_id, link_index) per 15 min)
-1. Re-derives its shard by ECDH with the partner key in the link
-2. Checks SHA-256(scalar) == C_i and scalar · G == P_i
-3. Encrypts the scalar to the combiner's X25519 key (NaCl Box)
-4. Signs the encrypted payload
-```
-
-The node needs only its persistent keypair. It stores nothing from printing.
-
-**3. Composition.** The combiner decrypts each scalar, checks it against the
-link's commitment, sums them, checks the sum's public key equals `P`, signs,
-and wipes `s`. `compose_and_sign()` consumes the session, so the composed
-secret exists only inside that call.
-
-**4. On chain.** `redeem_by_key` needs two signatures:
+The mint also accepts `redeem_by_key`, which rebuilds `s` from one shard per
+pair. Kenter's clients do not use it and nodes do not serve shards. For
+completeness, what the contract checks:
 
 ```
 signature        under P, over
                  SHA-256("kntr_v1:redeem:key" ‖ contract_xdr ‖ slot_id (u32 BE) ‖ P ‖ recipient_xdr)
-claim_signature  under the claim key, over the Path B claim digest
+claim_signature  under the claim key, over the by-chain claim digest
 ```
 
-The ephemeral signature proves the note was **constructed**; the claim
-signature proves it is **held**. Both are required because knowing `s` is not
-the same as holding the note: either member of each pair can derive its
-shard, and the shard endpoint answers anyone with a well-formed request. In
-spend mode (`redeem_by_key_owned`) the owner proof takes the claim
-signature's place.
+In spend mode (`redeem_by_key_owned`) the owner proof takes the claim
+signature's place. Both are required because knowing `s` is not the same as
+holding the note: either member of each pair can derive its shard.
 
 ---
 
@@ -471,13 +434,6 @@ is `node_a_public` of the final link.
 Steps 4 to 6 are reads through one RPC endpoint; see [Security
 model](/architecture/security-model) for what that does and does not prove.
 
-### Shard verification (Path A)
-
-Each pair node re-derives its shard and checks:
-
-- `SHA-256(scalar_bytes) == shard_commitment`
-- `scalar · G == partial_public_key`
-
 ---
 
 ## Signing roles
@@ -488,10 +444,10 @@ Each pair node re-derives its shard and checks:
 | Each ChainLink | Both nodes of the pair | Authenticates the pair's contribution |
 | Pure-bearer redemption | Claim key | Proves possession, names the recipient |
 | Spend-mode transfer and redemption | Current owner key | Proves ownership, names the successor or recipient |
-| Path A redemption | Composed ephemeral key | Proves the note was constructed |
+| Redemption by key (not used by Kenter's clients) | Composed ephemeral key | Proves the note was constructed |
 
 The composed ephemeral key exists only briefly, inside `compose_and_sign()`,
-and only on Path A. It never signs the note itself.
+and only on that path. It never signs the note itself.
 
 ---
 
@@ -534,22 +490,8 @@ let parsed = deserialize_bearer_token(&bytes)?;
 parsed.verify_chain_integrity()?;   // signatures, hash chain, key sum
 verify_bearer_signature(&bytes, &requestor.raw_public())?;
 
-// 7. Path B claim signature for a recipient
+// 7. Claim signature for a recipient
 let claim_sig = parsed.sign_claim(&contract_xdr, &recipient_xdr);
-
-// 8. Path A: request, shards, composition
-let request = RedemptionRequest::new(
-    parsed, token_hash, &holder, combiner.raw_public(), now,
-);
-let encrypted = contribute_shard(
-    &node_a, &node_b.verifying_key(),
-    &chain_link, &combiner.raw_public(), &event_id,
-    request_timestamp, now,
-)?;
-let mut session = RedemptionSession::new(request, combiner)?;
-session.receive_shard(&encrypted, &node_a.verifying_key())?;
-// … every shard …
-let (signature, public_key) = session.compose_and_sign(&digest)?;
 ```
 
 ---

@@ -42,8 +42,8 @@ or a shell.
 
 ### `kenter-crypto` — what a note is
 
-The note container, the chain of links, the shard scheme, Path A redemption
-requests, spend-mode primitives and the Stellar keypair wrapper. No I/O.
+The note container, the chain of links, the shard scheme, spend-mode
+primitives and the Stellar keypair wrapper. No I/O.
 
 Everything else depends on this and it depends on nothing internal. If you
 are learning the system, read `container.rs` and `chain_data.rs` first: they
@@ -95,7 +95,7 @@ These exist so the core doesn't have to know about the outside world.
 
 | Crate | Role |
 |---|---|
-| `kenter-node` | A pair node, headless (`kenter-node run`) or in the desktop tray (`kenter-node-tray`). Keeps the pair on the roster and bound to a relay, serves `/kenter/health`, `/kenter/shard`, `/kenter/extend`, and takes part in selection: registers its pair, seeds and claims prints within a daily XLM allowance, and clears abandoned prints it is owed for. See [Node selection](/architecture/node-selection) and `crates/kenter-node/ARCHITECTURE.md`. |
+| `kenter-node` | A pair node, headless (`kenter-node run`) or in the desktop tray (`kenter-node-tray`). Keeps the pair on the roster and bound to a relay, serves `/kenter/health` and `/kenter/extend`, and takes part in selection: registers its pair, seeds and claims prints within a daily XLM allowance, and clears abandoned prints it is owed for. See [Node selection](/architecture/node-selection) and `crates/kenter-node/ARCHITECTURE.md`. |
 | `kenter-tunnler` | The relay nodes and clients connect through. |
 | `kenter-systest` | Brings up a relay and real nodes locally, points GUI clients at them, and checks the ledger after each operator step. Not automated — it stops and tells you what to do. |
 

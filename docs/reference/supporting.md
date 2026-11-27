@@ -43,7 +43,6 @@ Each node serves three endpoints through the relay:
 | Endpoint | Purpose |
 |---|---|
 | `/kenter/health` | Liveness, and the pair's addresses |
-| `/kenter/shard` | Redemption. Re-derives this pair's shard by ECDH against the partner key in the `ChainLink`, and seals it to the holder's combiner |
 | `/kenter/extend` | Printing. Extends a partial token with one dual-signed link, then confirms the link on-chain |
 
 The handlers live in `kenter-network`; this crate runs them.

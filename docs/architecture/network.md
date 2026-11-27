@@ -103,15 +103,11 @@ is checked before it is written to the roster: it must be
 | Endpoint | Purpose | Needs |
 |---|---|---|
 | `/kenter/health` | Liveness, and the pair's two addresses | — |
-| `/kenter/shard` | Path A redemption | **This node's own secret only** |
 | `/kenter/extend` | Printing | Its own and its partner's |
 
-`/kenter/shard` re-derives the pair's shard by ECDH against the partner
-public key **carried in the `ChainLink`**, checks it against the link's
-commitment and partial key, and encrypts it to the combiner. That is why no
-node ever holds enough to reconstruct a note. `ShardRateLimiter` allows one
-response per link per 15 minutes, because this is the endpoint an attacker
-could usefully hammer.
+Nodes do not serve `/kenter/shard`, and answer it with HTTP 404. Shards are
+needed only for redemption by key, which Kenter's clients do not use, and the
+endpoint would answer anyone who presented a note's public inputs.
 
 `/kenter/extend` is reachable by anyone through the relay, so before
 extending the node reads the slot and checks the request against it
@@ -194,17 +190,12 @@ the draw lapses, is in [Node selection](/architecture/node-selection#where-a-slo
 
 The full interface is `contracts/kenter-mint/API.md`.
 
-## Redemption paths
+## Redemption
 
-| | Path A | Path B |
-|---|---|---|
-| Entry point | `redeem_by_key(_owned)` | `redeem_by_chain(_owned)` |
-| Needs | Shards from the printing pairs, and the claim key or owner key | The note file, and the claim key or owner key |
-| Network | Live nodes, and a combiner | None |
-| Privacy | Chain stays private | Chain becomes public |
-| In the client | Not driven | **Yes** |
+Kenter's clients redeem with `redeem_by_chain(_owned)`: the note file and the
+claim key or owner key, and no network beyond the RPC. The mint also has by-key entry points (`redeem_by_key`, `redeem_by_key_owned`), which rebuild the note's key from shards held by the pairs that printed it. Kenter's clients do not use them, and nodes do not serve shards.
 
-Path B verification costs roughly `1.6M + 3.81M · pairs` CPU instructions,
+By-chain verification costs roughly `1.6M + 3.81M · pairs` CPU instructions,
 well inside the network's transaction limit at twelve pairs.
 
 ## Building a transaction

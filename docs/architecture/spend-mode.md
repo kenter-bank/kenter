@@ -218,9 +218,11 @@ and what it cannot.
 
 ## Redemption
 
-Both redemption paths have spend-mode forms:
+Both of the mint's redemption entry points have spend-mode forms. Kenter's
+clients use the by-chain ones; nodes do not serve the shards the by-key ones
+need.
 
-| Mode | Path B (by chain) | Path A (by key) |
+| Mode | By chain | By key |
 |---|---|---|
 | Pure bearer | `redeem_by_chain`: chain preimage + claim signature | `redeem_by_key`: ephemeral-key signature + claim signature |
 | Spend mode | `redeem_by_chain_owned`: chain preimage + owner proof | `redeem_by_key_owned`: ephemeral-key signature + owner proof |
@@ -234,7 +236,7 @@ In spend mode the owner proof replaces the claim signature. It is already
 bound to the recipient, so a failed redemption transaction leaves nothing on
 the ledger anyone else can reuse.
 
-Path B needs no nodes, so a verified owner can always redeem regardless of
+Redemption by chain needs no nodes, so a verified owner can always redeem regardless of
 whether the network is up. See [Tokens and their lifecycle](/architecture/tokens).
 
 ## Node collusion

@@ -8,7 +8,7 @@ the holder owns the link that opens: possession of the file is the authority
 to take what the chain holds.
 
 This page shows how the pieces fit. What the project is for is in
-[What Kenter is](/).
+[What Kenter is](/what-is-kenter).
 
 ## Three layers
 
@@ -115,20 +115,20 @@ in [Tokens and their lifecycle](/architecture/tokens).
 Holding the file is holding the value. There is no balance record to consult
 and no account to freeze.
 
-## Two ways to redeem
+## Redeeming
 
-The mint offers both. Each requires a proof of possession as well: the claim
-signature for a pure-bearer note, the owner signature for a spend-mode note.
+A note is redeemed by presenting its chain: `redeem_by_chain` for a
+pure-bearer note, `redeem_by_chain_owned` for a spend-mode note. The contract
+checks the chain against the commitment registered at print and verifies it.
+It needs only the note file and, in spend mode, the owner key: no node is
+contacted and no shard secret is kept. Redemption also requires a proof of
+possession, the claim signature for a pure-bearer note or the owner signature
+for a spend-mode note.
 
-| | How it works | Trade-off |
-|---|---|---|
-| **Path A** — `redeem_by_key` | Collect shards from the pairs that printed it; reconstruct the ephemeral secret and sign | Needs the node network live and a combiner; the chain stays private |
-| **Path B** — `redeem_by_chain` | Present the chain; the contract checks it against the registered commitment and verifies it | Offline and node-free; the chain becomes public |
+The chain becomes public, but it names nobody new: the pairs that built the
+note and their partial keys are on chain from the print.
 
-**The desktop client uses Path B.** It needs only the note file and, in spend
-mode, the owner key. No shard secrets are retained and no node is contacted.
-Path A is in the contract and in `kenter-crypto`, but no client drives a
-combiner.
+The mint also has by-key entry points (`redeem_by_key`, `redeem_by_key_owned`), which rebuild the note's key from shards held by the pairs that printed it. Kenter's clients do not use them, and nodes do not serve shards.
 
 ## Pure bearer and spend mode
 
@@ -189,8 +189,8 @@ its score may win.
 - **`kenter-tunnler`** — the relay. Nodes connect over WebSocket and
   authenticate with a Stellar-signed JWT; wallets reach nodes through its open
   HTTPS proxy route. It takes no part in selection.
-- **`kenter-node`** — a pair node. Serves `/kenter/health`, `/kenter/shard`
-  (Path A redemption) and `/kenter/extend` (printing). Its daemon registers
+- **`kenter-node`** — a pair node. Serves `/kenter/health` and
+  `/kenter/extend` (printing). Its daemon registers
   the pair once, seeds slots it would claim, claims positions, and clears
   expired slots it confirmed on.
 - **`kenter-network`** — the wire protocol and tunnel client both ends use.

@@ -4,6 +4,10 @@
   "private": true,
   "description": "Kenter development documentation. Run `npm install` then `npm run dev`.",
   "scripts": {
+    "copy-logo": "node -e \"require('fs').copyFileSync('../crates/kenter-ui/skins/kenter/logo.svg','public/logo.svg')\"",
+    "predev": "npm run copy-logo",
+    "prebuild": "npm run copy-logo",
+    "prepreview": "npm run copy-logo",
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview"

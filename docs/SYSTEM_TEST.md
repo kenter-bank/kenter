@@ -23,11 +23,10 @@ what each phase asserts. For an overview of all the test tiers, see
 The daemons in this test serve `/kenter/health` and `/kenter/extend`. They
 build **links**.
 
-Shard service (`/kenter/shard`) belongs to redemption Path A, and no client
-drives it: the GUI's Redeem and the CLI's `redeem` both use Path B
-(`redeem_by_chain`), which needs no node and no secret. Path A is exercised
-only by `kenter-tunnler`'s in-process `multi_node_test.rs`. This test does
-not cover shard serving.
+Nodes do not serve shards: the GUI's Redeem and the CLI's `redeem` both use
+`redeem_by_chain`, which needs no node and no secret. The shard scheme is
+still exercised in process by `kenter-tunnler`'s `multi_node_test.rs`, which
+turns shard service on for its own nodes.
 
 ### How many daemons
 

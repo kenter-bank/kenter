@@ -87,7 +87,7 @@ cargo run -p kenter-systest -- --skip-test    # unattended: a selected node dies
 The documentation is a VitePress site under `docs/` (`cd docs && npm install
 && npm run dev`). Start with:
 
-- `docs/index.md`: what Kenter is and what is built
+- `docs/what-is-kenter.md`: what Kenter is and what is built
 - `docs/reading-guide.md`: what to read, depending on what you are doing
 - `docs/architecture/overview.md`: how the pieces fit
 - `docs/architecture/node-selection.md`: how a print gets its nodes

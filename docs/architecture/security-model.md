@@ -36,11 +36,11 @@ Two properties of the contracts shape everything else:
 
 | Threat | What stops it |
 |---|---|
-| **Interior nodes collude to rebuild the ephemeral secret.** Each shard is derivable by either member of its pair, so all interior pairs together know every interior shard | The depositor holds the first and last pairs and builds the closing link on its own machine; no node ever sees it. Path B needs every link and Path A needs every shard, so no coalition of nodes can redeem a note it never received |
-| **A forged chain built from public data** (the ephemeral key, event id and pair count are all public) | `register_token` commits `chain_hash = SHA-256(chain_data)`. Path B requires the submitted chain to hash to it before anything else is checked |
+| **Interior nodes collude to rebuild the ephemeral secret.** Each shard is derivable by either member of its pair, so all interior pairs together know every interior shard | The depositor holds the first and last pairs and builds the closing link on its own machine; no node ever sees it. Redemption by chain needs every link and redemption by key every shard, so no coalition of nodes can redeem a note it never received |
+| **A forged chain built from public data** (the ephemeral key, event id and pair count are all public) | `register_token` commits `chain_hash = SHA-256(chain_data)`. Redemption requires the submitted chain to hash to it before anything else is checked |
 | **Lifting a chain off a failed redemption.** Presenting the chain publishes it; a transaction that fails on chain publishes it while the note stays live | Pure-bearer redemption on both paths also requires a signature from the note's **claim key** over the recipient. The claim secret is random, generated at assembly, stored only in the file and never sent anywhere. A signature for one recipient is useless to anyone else |
 | **Reusing a signature** from another deployment, another record or an earlier state | Every digest includes the mint's address and the slot id. Redemption digests include the recipient. Transfer digests include both commitments and a nonce that advances on every transfer |
-| **Composing the ephemeral secret through the node network** (Path A's shard endpoint serves whoever asks) | Path A also requires the claim signature (pure bearer) or the owner proof (spend mode), so knowing the ephemeral secret proves construction, not possession |
+| **Composing the ephemeral secret through the node network** | Nodes do not serve shards. And redemption by key also requires the claim signature (pure bearer) or the owner proof (spend mode), so knowing the ephemeral secret proves construction, not possession |
 | **A payer redeeming after paying** | Spend mode: the mint moves ownership on `spend`, and redemption requires the current owner's key. In pure bearer this is the copy property and is not prevented |
 | **A thief with the file** | Spend mode: still needs the owner key, derived from the seed and never sent to a node. Pure bearer: the thief can redeem |
 
@@ -121,8 +121,8 @@ These are properties of the system, not defects awaiting a fix.
   point the client at an endpoint you run. Cross-checking two endpoints
   configured from the same place would not raise the bar.
 - **The ends of a payment are public.** The depositing account and the
-  redemption payout are on the ledger in both modes. Path B also publishes
-  the note's chain at redemption. Spend mode puts every transfer on the
+  redemption payout are on the ledger in both modes. Redemption also
+  publishes the note's chain. Spend mode puts every transfer on the
   ledger.
 - **Interior nodes see metadata.** A print's nodes learn its event id,
   amount, timing and depositor address, even though they cannot redeem it.
@@ -142,12 +142,11 @@ These are properties of the system, not defects awaiting a fix.
 - **The relay can refuse traffic.** To the depositor that looks like a dead
   node: it skips at a fee and a runner-up serves. A relay that blocked
   honest pairs selectively could bias which runners-up serve.
-- **Path A's shard request authorizes nobody.** A node verifies the
-  requester's signature against an address the requester supplies, so anyone
-  can ask. That cannot reach a payout (Path A also needs the claim key or
-  owner proof), but anyone holding the public inputs can deny Path A
-  redemption of a link for up to 15 minutes at a time. Path B is unaffected,
-  and the desktop client redeems by Path B only.
+- **Redemption by key is not offered.** The shard handler authorizes
+  nobody (it checks a signature against an address the requester supplies),
+  so nodes do not serve it. The mint's by-key entry points remain callable
+  by anyone who can produce both signatures; Kenter's clients redeem by
+  chain.
 - **A failed transfer stays live.** A broadcast `spend` authorization stays
   valid until the note's nonce moves. The holder must retry it or spend the
   note to themselves; paying with a different note can pay twice.

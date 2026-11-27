@@ -127,13 +127,18 @@ interchangeable. See [spend mode](/architecture/spend-mode) for the model.
 
 ## `shard` and `redemption`
 
+A shard is one pair's contribution to a note's key. The redemption types
+serve redemption by key, which Kenter's clients do not use and nodes do not
+serve; they remain because the mint has the entry points and the scheme is
+tested.
+
 | Item | Purpose |
 |---|---|
 | `Shard` | One pair's contribution; zeroized on drop |
 | `ChainLink` | A pair's public record, signed by both nodes |
 | `derive_shard(…)` | ECDH between the two nodes of a pair, salted by event id |
 | `EncryptedShard` | A shard sealed to the combiner |
-| `contribute_shard(…)` | What a node does on `/kenter/shard` |
+| `contribute_shard(…)` | One pair's shard, checked and sealed to a combiner |
 | `RedemptionRequest` | A holder's request |
 | `RedemptionSession` | State across a multi-pair redemption |
 | `holder_signable_bytes(…)` | Exactly what the holder signs |
