@@ -40,7 +40,15 @@ DEPLOY_WHAT=roster scripts/deploy_testnet.sh # just the roster
 DEPLOY_WHAT=mint ROSTER_ID=C... scripts/deploy_testnet.sh   # a new mint on an existing roster
 DEPLOY_WHAT=warm ROSTER_ID=C... MINT_ID=C... scripts/deploy_testnet.sh
 DEPLOY_WHAT=nodes ROSTER_ID=C... scripts/deploy_testnet.sh  # just register the node aliases
+PREBUILT_DIR=dir scripts/deploy_testnet.sh   # deploy wasm built elsewhere instead of building
 ```
+
+`PREBUILT_DIR` names a folder holding `kenter_mint.wasm` and
+`kenter_roster.wasm`, built from the same commit on another machine. Use it
+to put the Linux build on testnet from a machine that is not Linux, so
+testnet runs the bytes mainnet will. The files are copied where a local
+build would go, so the budget checks measure them; their hashes are
+printed.
 
 `DRY_RUN` accepts `1`/`true`/`yes`/`y`/`on` and their opposites. It
 refuses anything else rather than guess, since a wrong guess spends a

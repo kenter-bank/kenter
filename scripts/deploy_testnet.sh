@@ -19,6 +19,7 @@
 #   scripts/deploy_testnet.sh                    # deploy both, register nodes
 #   DEPLOY_WHAT=roster scripts/deploy_testnet.sh # just the roster
 #   DRY_RUN=1 scripts/deploy_testnet.sh          # print the commands only
+#   PREBUILT_DIR=dir scripts/deploy_testnet.sh   # deploy wasm built elsewhere
 #
 set -euo pipefail
 
@@ -173,15 +174,32 @@ note "roster : min_stake=$MIN_STAKE unbonding_ledgers=$UNBONDING_LEDGERS (no adm
 note "select : drand quicknet, lead=$BEACON_LEAD rounds claim_window=$CLAIM_WINDOW serve_timeout=$SERVE_TIMEOUT min_node_age=$MIN_NODE_AGE fallback_delay=$FALLBACK_DELAY"
 
 # ── Build ─────────────────────────────────────────────────────────────
-say "Building contracts to wasm"
-# `stellar contract build` rather than plain cargo: it sets the target
-# and the release profile the toolchain expects, and it is what produced
-# the wasm already sitting in those target dirs.
-run stellar contract build --manifest-path contracts/kenter-mint/Cargo.toml
-run stellar contract build --manifest-path contracts/kenter-roster/Cargo.toml
-
 MINT_WASM=contracts/kenter-mint/target/wasm32v1-none/release/kenter_mint.wasm
 ROSTER_WASM=contracts/kenter-roster/target/wasm32v1-none/release/kenter_roster.wasm
+
+if [ -n "${PREBUILT_DIR:-}" ]; then
+    # Wasm built elsewhere, from the same commit: a Linux build deployed
+    # from a machine that is not Linux, so testnet runs the bytes mainnet
+    # will (docs/DEPLOY.md, "Deploying to mainnet"). They are copied
+    # where a local build would put them, so the budget checks below
+    # measure exactly what is deployed.
+    say "Using the wasm in $PREBUILT_DIR instead of building"
+    for f in kenter_mint.wasm kenter_roster.wasm; do
+        [ -f "$PREBUILT_DIR/$f" ] || { echo "PREBUILT_DIR has no $f" >&2; exit 1; }
+    done
+    mkdir -p "$(dirname "$MINT_WASM")" "$(dirname "$ROSTER_WASM")"
+    cp "$PREBUILT_DIR/kenter_mint.wasm" "$MINT_WASM"
+    cp "$PREBUILT_DIR/kenter_roster.wasm" "$ROSTER_WASM"
+else
+    say "Building contracts to wasm"
+    # `stellar contract build` rather than plain cargo: it sets the target
+    # and the release profile the toolchain expects, and it is what produced
+    # the wasm already sitting in those target dirs.
+    run stellar contract build --manifest-path contracts/kenter-mint/Cargo.toml
+    run stellar contract build --manifest-path contracts/kenter-roster/Cargo.toml
+fi
+note "mint wasm   sha256 $(sha256sum "$MINT_WASM" | cut -d' ' -f1)"
+note "roster wasm sha256 $(sha256sum "$ROSTER_WASM" | cut -d' ' -f1)"
 
 # ── Budget gate ───────────────────────────────────────────────────────
 # Nothing reaches a ledger without passing the CPU budget.
