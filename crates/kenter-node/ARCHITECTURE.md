@@ -1,8 +1,9 @@
 # kenter-node — Architecture
 
 **Role.** The runtime for one Kenter pair. It keeps the pair on the roster,
-stays bound to a `kenter-tunnler` relay, serves `/kenter/health`,
-`/kenter/shard` and `/kenter/extend`, confirms the links it builds, and takes
+stays bound to a `kenter-tunnler` relay, serves `/kenter/health` and
+`/kenter/extend` (not `/kenter/shard`: notes are redeemed by chain), confirms
+the links it builds, and takes
 part in print selection: it registers its pair with the mint, seeds and
 claims prints it may win, and clears abandoned prints it is owed for.
 How print selection works on the contract side is described in

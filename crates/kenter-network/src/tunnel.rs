@@ -149,7 +149,7 @@ pub struct TunnelEndpoint {
 /// Trait for handling incoming tunnel requests.
 ///
 /// Implement this to dispatch Kenter protocol messages
-/// (`/kenter/health`, `/kenter/shard`, `/kenter/extend`).
+/// (`/kenter/health`, `/kenter/extend`, and `/kenter/shard` where served).
 pub trait RequestHandler: Send + Sync + 'static {
     fn handle_request(
         &self,
@@ -219,8 +219,9 @@ fn http_envelope(status_code: u16, payload: Value) -> Value {
     })
 }
 
-/// Full Kenter protocol handler that dispatches to shard, extend,
-/// and health endpoints.
+/// Full Kenter protocol handler that dispatches to the extend and health
+/// endpoints, and to the shard endpoint only when asked to
+/// ([`KenterHandler::with_shard_service`]).
 ///
 /// Responses are wrapped by [`http_envelope`]. Protocol-level failures (a bad
 /// shard request, a node not in a print relay) are still **HTTP 200** with the
@@ -248,20 +249,48 @@ pub struct KenterHandler {
     /// is what that party was already owed. Bounded: the newest
     /// [`SERVED_KEEP`].
     pub served: Arc<Mutex<std::collections::VecDeque<([u8; 32], Value)>>>,
+    /// Whether `/kenter/shard` is answered. **Off by default.**
+    ///
+    /// Shards serve only redemption by key (`redeem_by_key`), which no
+    /// Kenter client uses: notes are redeemed by chain, which needs no node.
+    /// The handler gives a shard to anyone who presents a note's public
+    /// inputs, so serving it would let anyone compose a note's ephemeral
+    /// secret through the network. That cannot reach a payout (the mint
+    /// also wants the claim key or owner proof), but it is a public
+    /// endpoint doing nothing useful. Only the in-process shard test turns
+    /// it on ([`Self::with_shard_service`]).
+    pub serve_shards: bool,
 }
 
 /// How many served extensions a node remembers.
 pub const SERVED_KEEP: usize = 64;
 
 impl KenterHandler {
+    /// A handler that serves `/kenter/health` and `/kenter/extend`, and
+    /// refuses `/kenter/shard`.
     pub fn new(
         pair_ctx: Arc<crate::handlers::PairNodeContext>,
         extend_ctx: Arc<Mutex<Option<crate::handlers::ExtendNodeContext>>>,
         confirmer: Option<Arc<dyn LinkConfirmer>>,
     ) -> Self {
-        Self { pair_ctx, extend_ctx, confirmer, served: Default::default() }
+        Self {
+            pair_ctx,
+            extend_ctx,
+            confirmer,
+            served: Default::default(),
+            serve_shards: false,
+        }
+    }
+
+    /// Also answer `/kenter/shard`. For testing the shard scheme only.
+    pub fn with_shard_service(mut self) -> Self {
+        self.serve_shards = true;
+        self
     }
 }
+
+/// What `/kenter/shard` answers on a node that does not serve shards.
+pub const SHARDS_NOT_SERVED: &str = "this node does not serve shards: Kenter notes are redeemed by chain";
 
 impl RequestHandler for KenterHandler {
     fn handle_request(
@@ -272,6 +301,7 @@ impl RequestHandler for KenterHandler {
         let extend_ctx = Arc::clone(&self.extend_ctx);
         let confirmer = self.confirmer.clone();
         let served = Arc::clone(&self.served);
+        let serve_shards = self.serve_shards;
 
         Box::pin(async move {
             match req.path.as_str() {
@@ -293,6 +323,14 @@ impl RequestHandler for KenterHandler {
                 }
 
                 "/kenter/shard" => {
+                    // Refused before the body is read, so a node that does
+                    // not serve shards does no work for the request.
+                    if !serve_shards {
+                        return http_envelope(
+                            404,
+                            serde_json::json!({"status": "error", "error": SHARDS_NOT_SERVED}),
+                        );
+                    }
                     let body = match req.body.as_deref() {
                         Some(b) => b,
                         None => {

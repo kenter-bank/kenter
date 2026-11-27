@@ -158,6 +158,8 @@ async fn start_node(port: u16) -> Node {
         }))),
         confirmer: None,
         served: Default::default(),
+        // This test drives the shard scheme over the real proxy path.
+        serve_shards: true,
     });
 
     let cfg = TunnelConfig {
@@ -427,6 +429,7 @@ async fn start_node_with_confirmer(
         }))),
         confirmer: Some(confirmer),
         served: Default::default(),
+        serve_shards: false,
     });
 
     let cfg = TunnelConfig {

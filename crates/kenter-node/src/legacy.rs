@@ -253,7 +253,7 @@ pub async fn run(args: Vec<String>) -> Result<(), String> {
     println!("kenter-node serving as {own_address}");
     println!("  pair partner : {partner_address}");
     println!("  endpoint     : {}", endpoint.endpoint_url);
-    println!("  endpoints    : /kenter/health  /kenter/shard  /kenter/extend");
+    println!("  endpoints    : /kenter/health  /kenter/extend");
 
     // Close the tunnel cleanly on interrupt so the relay drops the binding
     // rather than waiting for a timeout. Awaiting the session itself also means

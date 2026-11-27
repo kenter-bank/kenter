@@ -5,7 +5,9 @@
 
 - **printing**: building a note's chain one pair at a time (`/kenter/extend`);
 - **shard redemption**: collecting each pair's shard to rebuild a note's
-  ephemeral key (`/kenter/shard`).
+  ephemeral key (`/kenter/shard`). Not served by nodes: Kenter redeems by
+  chain, and the handler refuses this endpoint unless built
+  `with_shard_service()`, which only the in-process shard test does.
 
 It owns the wire message types, the Stellar-JWT handshake, the WebSocket
 session with its request dispatch, and the request handlers that wrap
@@ -69,7 +71,8 @@ transaction to land (up to 60 s) before answering. The relay's
 `KenterHandler` routes by path:
 
 - `/kenter/health`: `HealthResponse`.
-- `/kenter/shard`: `handle_shard_request`.
+- `/kenter/shard`: HTTP 404 (`SHARDS_NOT_SERVED`), or `handle_shard_request`
+  when built `with_shard_service()`.
 - `/kenter/extend`: the extend flow below. A node without an
   `ExtendNodeContext` answers with an error.
 - anything else: HTTP 404.

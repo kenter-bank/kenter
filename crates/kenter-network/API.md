@@ -85,7 +85,7 @@ stream-multiplexed requests.
 | `IncomingRequest { stream_id, method, path, headers, body:Option<String> }` | Delivered to the handler. |
 | `RequestHandler` (trait) | `handle_request(&self, IncomingRequest) -> Pin<Box<dyn Future<Output=Value> + Send + '_>>`. |
 | `LinkConfirmer` (trait) | `admits(slot_id, event_id, prior_links) -> Result<(), String>` and `confirm_link(slot_id, link_index, partial_public_key) -> Result<(), String>`, both async. No default for `admits`: an implementation that forgot it would admit everything. |
-| `KenterHandler { pair_ctx, extend_ctx: Arc<Mutex<Option<ExtendNodeContext>>>, confirmer: Option<Arc<dyn LinkConfirmer>>, served }` | `new(pair_ctx, extend_ctx, confirmer)`. Routes `/kenter/health`, `/kenter/shard`, `/kenter/extend`. |
+| `KenterHandler { pair_ctx, extend_ctx: Arc<Mutex<Option<ExtendNodeContext>>>, confirmer: Option<Arc<dyn LinkConfirmer>>, served }` | `new(pair_ctx, extend_ctx, confirmer)`. Routes `/kenter/health` and `/kenter/extend`; `/kenter/shard` answers HTTP 404 unless built `with_shard_service()` (tests only). Field `serve_shards`, off by default. |
 | `SERVED_KEEP` | 64: how many served extensions a node remembers. |
 | `SessionHandle` | `shutdown()`, `shutdown_trigger() -> impl Fn()` (detachable, since `join` consumes the handle), `async join()`, `async request(target, method, path, body:Option<&Value>) -> Result<Value>` (raw peer reply), `async request_json(...)` (unwraps the HTTP envelope; errors on a non-2xx `status_code`). |
 
