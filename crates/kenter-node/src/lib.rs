@@ -18,6 +18,7 @@ pub mod daemon;
 pub mod home;
 pub mod keys;
 pub mod select;
+pub mod slot_cache;
 pub mod status;
 /// The desktop tray and settings window. Windows and
 /// macOS; a Linux desktop tray needs a GTK loop and is not built yet.

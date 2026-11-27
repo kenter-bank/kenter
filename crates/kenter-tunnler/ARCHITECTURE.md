@@ -39,7 +39,9 @@ list, so no single relay is a point of failure for the network.
 | `error` | Error type |
 
 Routes: `/connect` (WebSocket upgrade), `/health`, and
-`/proxy/:stellar_address/*path` for GET, POST, PUT and DELETE.
+`/proxy/:stellar_address/*path` for POST only, to the two node paths in
+`config::PROXY_PATHS`, with a 64 KiB body limit. Everything else is refused
+before a tunnel stream is spent on it.
 
 **Dependencies.** `kenter-crypto` (`StellarKeypair`, the server identity),
 `kenter-network` (`verify_stellar_jwt`) and the roster contract, read with

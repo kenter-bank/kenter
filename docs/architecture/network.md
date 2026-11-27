@@ -113,7 +113,11 @@ endpoint would answer anyone who presented a note's public inputs.
 extending the node reads the slot and checks the request against it
 (`SlotInfo::admits_next`): the slot's event id, exactly the links already
 confirmed, each signed by the pair the slot assigns it, and this pair next.
-After extending it submits `confirm_link`, and a failed confirmation fails
+The relay forwards only this path and `/kenter/health` to a node, and the
+node reads each slot it is asked about at most about once a ledger
+(`kenter_node::slot_cache`), so junk naming a real slot can't use up the
+node's RPC quota. An old snapshot never refuses a request a fresh read would
+admit: a refused extend gets the pair skipped. After extending it submits `confirm_link`, and a failed confirmation fails
 the request. A node remembers its last `SERVED_KEEP` (64) replies by a hash
 of the exact request, so a depositor whose reply was lost in transit gets it
 again without a second confirmation.

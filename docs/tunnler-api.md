@@ -30,10 +30,20 @@ WebSocket upgrade. Starts an authenticated tunnel session (see
 `version` is the crate version. `connections` is the number of connected
 nodes.
 
-### `GET|POST|PUT|DELETE /proxy/{stellar_address}/{*path}`
+### `POST /proxy/{stellar_address}/{*path}`
 
 Forwards an HTTP request to the connected node with that address, and
-returns its response. The route takes no authentication.
+returns its response. The route takes no authentication, so it forwards
+only what a wallet needs: `POST` to one of two node paths,
+
+- `/kenter/health`, which a depositor calls before a print to learn a node's
+  pair partner, and
+- `/kenter/extend`, which asks a node for the next link of a print.
+
+Anything else is refused by the relay and never reaches a tunnel. Bodies are
+capped at 64 KiB (an extend request is a few KB). The list is
+`PROXY_PATHS` in `crates/kenter-tunnler/src/config.rs`; it is not
+configurable.
 
 Wallets use this route to reach nodes when printing:
 `https://relay.example.org/proxy/<G...>/kenter/extend`. nginx also maps the
@@ -45,6 +55,9 @@ The request's method, path, headers and body (as text) go to the node in a
 | Status | Meaning |
 |--------|---------|
 | 400 | Not a valid Stellar account address (56 characters, starting with `G`) |
+| 404 | Not one of the two node paths |
+| 405 | A method other than `POST` |
+| 413 | Body over 64 KiB |
 | 502 | No tunnel for this address, send failed, node disconnected, or no answer within `TUNNLER_REQUEST_TIMEOUT` |
 | 503 | The node's tunnel is at its in-flight request limit, or its outbound queue is full |
 
@@ -358,8 +371,9 @@ Possible errors: `target not connected`, `target is busy`,
 | Stale connection sweep | 60 s | Removes dead connections and cancels their pending streams |
 
 nginx adds its own limits in front: 5 WebSocket connections per IP on
-`/connect` and 30 requests per second (burst 60) per IP on the proxy
-routes, in the shipped configuration.
+`/connect`, 10 requests per second (burst 20) per IP on the proxy
+routes, bodies capped at 64 KiB and 10-second header and body timeouts, in
+the shipped configuration.
 
 ---
 

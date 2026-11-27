@@ -76,6 +76,14 @@ fn test_config(server_secret: String) -> AppConfig {
         // The tests connect over loopback with no proxy in front, so
         // nothing needs to be believed about who the client is.
         trusted_proxies: Vec::new(),
+        // The relay's own list, plus the shard endpoint: the nodes here
+        // are built with shard service on to keep that code tested
+        // (`start_node`), and these tests reach it through the relay.
+        proxy_paths: crate::config::PROXY_PATHS
+            .iter()
+            .chain(&["/kenter/shard"])
+            .map(|p| p.to_string())
+            .collect(),
     }
 }
 

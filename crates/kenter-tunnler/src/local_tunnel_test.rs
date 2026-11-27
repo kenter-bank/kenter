@@ -6,15 +6,18 @@
 //! external HTTP → proxy → `tunnel_request` → client handler → `tunnel_response`
 //! → proxy → HTTP response.
 //!
-//! Guards two behaviours of the relay path:
-//!   - the proxy forwards the **real HTTP method** (not a hard-coded `GET`), and
-//!   - the client's outbound response correlation (stream-id demultiplexer).
+//! Guards these behaviours of the relay path:
+//!   - the client's outbound response correlation (stream-id demultiplexer),
+//!   - the proxy forwards only POST, and only to the configured node paths,
+//!     refusing anything else **before** it reaches the tunnel, and
+//!   - a body over `MAX_PROXY_BODY` is refused (413) without being forwarded.
 //!
 //! Everything runs in-process, so this needs no deployed relay.
 
 use std::future::Future;
 use std::net::SocketAddr;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -23,19 +26,23 @@ use serde_json::Value;
 use kenter_crypto::keypair::StellarKeypair;
 use kenter_network::tunnel::{IncomingRequest, RequestHandler, TunnelClient, TunnelConfig};
 
-use crate::config::AppConfig;
+use crate::config::{AppConfig, MAX_PROXY_BODY};
 use crate::server::build_router;
 use crate::state::AppState;
 
 /// A node-side handler that echoes the request method + path back in the body,
-/// so the test can assert the method survived the proxy hop.
-struct EchoHandler;
+/// and counts what reaches it, so the test can tell a refusal at the relay
+/// from one at the node.
+struct EchoHandler {
+    seen: Arc<AtomicUsize>,
+}
 
 impl RequestHandler for EchoHandler {
     fn handle_request(
         &self,
         req: IncomingRequest,
     ) -> Pin<Box<dyn Future<Output = Value> + Send + '_>> {
+        self.seen.fetch_add(1, Ordering::SeqCst);
         Box::pin(async move {
             let body = serde_json::json!({ "method": req.method, "path": req.path }).to_string();
             serde_json::json!({
@@ -68,6 +75,7 @@ fn test_config(server_secret: String) -> AppConfig {
         // The tests connect over loopback with no proxy in front, so
         // nothing needs to be believed about who the client is.
         trusted_proxies: Vec::new(),
+        proxy_paths: vec!["/kenter/ping".into()],
     }
 }
 
@@ -101,7 +109,7 @@ async fn proxy_json(
 }
 
 #[tokio::test]
-async fn local_tunnel_roundtrip_and_method_passthrough() {
+async fn local_tunnel_roundtrip_and_what_the_proxy_refuses() {
     // --- Boot the server in-process ---
     let server_kp = StellarKeypair::random();
     let config = test_config(server_kp.stellar_secret().to_string());
@@ -123,6 +131,7 @@ async fn local_tunnel_roundtrip_and_method_passthrough() {
     });
 
     // --- Connect a real client over plaintext ws:// (the dev fix) ---
+    let seen = Arc::new(AtomicUsize::new(0));
     let client_kp = StellarKeypair::random();
     let client_addr = client_kp.stellar_address();
     let client_cfg = TunnelConfig {
@@ -136,7 +145,7 @@ async fn local_tunnel_roundtrip_and_method_passthrough() {
     };
 
     let (endpoint, _session) = TunnelClient::new(client_kp, client_cfg)
-        .run(Arc::new(EchoHandler))
+        .run(Arc::new(EchoHandler { seen: Arc::clone(&seen) }))
         .await
         .expect("client connect → auth → bind");
     assert!(
@@ -149,20 +158,38 @@ async fn local_tunnel_roundtrip_and_method_passthrough() {
     let http = reqwest::Client::new();
     let url = format!("http://127.0.0.1:{port}/proxy/{client_addr}/kenter/ping");
 
-    // GET round-trips end to end.
-    let get_body = proxy_json(&http, reqwest::Method::GET, &url).await;
-    assert_eq!(get_body["method"], "GET");
-    assert_eq!(get_body["path"], "/kenter/ping");
-
-    // POST must arrive as POST at the node — the proxy-method fix. (Before it,
-    // every verb was relayed as GET.)
+    // POST to a listed path round-trips end to end, method intact.
     let post_body = proxy_json(&http, reqwest::Method::POST, &url).await;
-    assert_eq!(
-        post_body["method"], "POST",
-        "proxy must forward the real HTTP method, not hard-coded GET"
-    );
+    assert_eq!(post_body["method"], "POST");
+    assert_eq!(post_body["path"], "/kenter/ping");
+    let reached = seen.load(Ordering::SeqCst);
 
-    // DELETE too, for good measure.
-    let del_body = proxy_json(&http, reqwest::Method::DELETE, &url).await;
-    assert_eq!(del_body["method"], "DELETE");
+    // Everything below is refused by the relay; none of it may reach the node.
+    let status = |r: reqwest::Response| r.status().as_u16();
+
+    // Other methods on a listed path: 405.
+    for method in [reqwest::Method::GET, reqwest::Method::PUT, reqwest::Method::DELETE] {
+        let r = http.request(method.clone(), &url).send().await.unwrap();
+        assert_eq!(status(r), 405, "{method} must be refused");
+    }
+
+    // A path that is not listed: 404, even for a connected node.
+    for path in ["kenter/shard", "kenter/ping/more", "admin", "kenter/health"] {
+        let r = http
+            .post(format!("http://127.0.0.1:{port}/proxy/{client_addr}/{path}"))
+            .body("{}")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(status(r), 404, "/{path} must be refused");
+    }
+
+    // A body over the cap: 413. One byte under goes through.
+    let r = http.post(&url).body(vec![b'x'; MAX_PROXY_BODY + 1]).send().await.unwrap();
+    assert_eq!(status(r), 413);
+    assert_eq!(seen.load(Ordering::SeqCst), reached, "refused requests reached the node");
+
+    let r = http.post(&url).body(vec![b'x'; MAX_PROXY_BODY]).send().await.unwrap();
+    assert_eq!(status(r), 200);
+    assert_eq!(seen.load(Ordering::SeqCst), reached + 1);
 }

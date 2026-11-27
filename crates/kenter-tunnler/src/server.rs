@@ -2,14 +2,16 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
 use axum::extract::connect_info::ConnectInfo;
+use axum::extract::DefaultBodyLimit;
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::response::IntoResponse;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 use tower_http::trace::TraceLayer;
 
+use crate::config::MAX_PROXY_BODY;
 use crate::proxy::proxy_handler;
 use crate::state::AppState;
 use crate::ws::handle_connection;
@@ -21,10 +23,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             // axum 0.7 path syntax: `:name` for a param, `*name` for catch-all.
             "/proxy/:stellar_address/*path",
-            get(proxy_handler)
-                .post(proxy_handler)
-                .put(proxy_handler)
-                .delete(proxy_handler),
+            // A wallet only POSTs (the health check and extend); any
+            // other method is 405 before a tunnel is touched. The body
+            // limit makes an oversized request 413 instead of a 2 MB read.
+            post(proxy_handler).layer(DefaultBodyLimit::max(MAX_PROXY_BODY)),
         )
         .layer(TraceLayer::new_for_http())
         .with_state(state)

@@ -357,7 +357,7 @@ A minimal server block:
 
 ```nginx
 limit_conn_zone $binary_remote_addr zone=ws_conn:10m;
-limit_req_zone  $binary_remote_addr zone=proxy_req:10m rate=30r/s;
+limit_req_zone  $binary_remote_addr zone=proxy_req:10m rate=10r/s;
 limit_req_status 429;
 
 upstream tunnler {
@@ -374,6 +374,10 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/relay.example.org/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
 
+    client_max_body_size 64k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
+
     location /connect {
         limit_conn ws_conn 5;
         proxy_pass http://tunnler;
@@ -387,7 +391,7 @@ server {
     }
 
     location / {
-        limit_req zone=proxy_req burst=60 nodelay;
+        limit_req zone=proxy_req burst=20 nodelay;
         proxy_pass http://tunnler;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -398,9 +402,10 @@ server {
 ```
 
 `/proxy` takes no authentication: anyone can aim requests at a connected
-node. The `limit_req` zone stops a flood before it reaches the relay, which
-also caps its own in-flight work per node (see
-[Relay API](/tunnler-api#limits)).
+node. The relay forwards only `POST` to `/kenter/health` and
+`/kenter/extend`, with bodies up to 64 KiB, and caps its own in-flight work
+per node (see [Relay API](/tunnler-api#limits)). The `limit_req` zone, body
+cap and timeouts stop a flood before it reaches the relay at all.
 
 ### Verify
 
@@ -603,11 +608,12 @@ journalctl -u kenter-tunnler -f
 | Site | Serves |
 |---|---|
 | `kenter-tunnler`, port 80, base domain and subdomains | ACME challenges; everything else redirects to HTTPS |
-| `kenter-tunnler-ssl`, base domain | `/connect` (WebSocket, 5 connections per IP, 24 h timeouts) and everything else, `/proxy` and `/health` included |
-| `kenter-tunnler-ssl`, `*.relay.example.org` | every request, rewritten to `/proxy/<G...>/<path>` (30 requests/s per IP, burst 60) |
+| `kenter-tunnler-ssl`, base domain | `/connect` (WebSocket, 5 connections per IP, 24 h timeouts) and everything else, `/proxy` and `/health` included (10 requests/s per IP, burst 20) |
+| `kenter-tunnler-ssl`, `*.relay.example.org` | every request, rewritten to `/proxy/<G...>/<path>` (10 requests/s per IP, burst 20) |
 | default server, port 443 | custom domains, rewritten to `/proxy` |
 
-Upstream keepalive is 32 connections. Every site sends `X-Frame-Options`,
+Every HTTPS site caps bodies at 64 KiB and has 10-second header and body
+timeouts. Upstream keepalive is 32 connections. Every site sends `X-Frame-Options`,
 `X-Content-Type-Options`, `Referrer-Policy` and HSTS headers. The base
 domain's `location /` needs `proxy_read_timeout 150` for `/proxy`
 requests (see [Configure nginx](#configure-nginx)).

@@ -16,10 +16,11 @@ Routes are declared in `server::build_router`.
 |--------|------|---------|-------|
 | `GET` | `/connect` | WS upgrade | Opens an authenticated tunnel session (see lifecycle). |
 | `GET` | `/health` | `health_handler` | JSON `{status, version, connections, roster_gating}`. |
-| `GET`/`POST`/`PUT`/`DELETE` | `/proxy/{stellar_address}/{*path}` | `proxy_handler` | Forwards to the connected node and returns its response. |
+| `POST` | `/proxy/{stellar_address}/{*path}` | `proxy_handler` | Forwards to the connected node and returns its response, for a path in `config::PROXY_PATHS` only (`/kenter/health`, `/kenter/extend`). Body limit `MAX_PROXY_BODY` (64 KiB). |
 
-**`/proxy` status codes:** `400` invalid Stellar address (not 56 chars, not `G…`,
-or non-alphanumeric); `502` no active tunnel, send failed, client disconnected,
+**`/proxy` status codes:** `404` a path not in `PROXY_PATHS`; `405` a method
+other than `POST`; `413` a body over `MAX_PROXY_BODY`; `400` invalid Stellar
+address (not 56 chars, not `G…`, or non-alphanumeric); `502` no active tunnel, send failed, client disconnected,
 or request timeout; `503` the tunnel already has `MAX_IN_FLIGHT` (256) requests
 outstanding, or its outbound queue (`OUTBOUND_QUEUE`, 256) is full. The real
 HTTP method, path, headers and body are forwarded in the `tunnel_request`; the

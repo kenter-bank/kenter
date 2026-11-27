@@ -13,7 +13,11 @@ use crate::state::AppState;
 
 /// HTTP proxy handler: forward requests to connected tunnel clients.
 ///
-/// Route: `GET/POST/... /proxy/{stellar_address}/{path}`
+/// Route: `POST /proxy/{stellar_address}/{path}`, for a `path` in the
+/// config's `proxy_paths` only (`config::PROXY_PATHS`). Anyone on the
+/// internet can call this route, so what it forwards is the short list a
+/// wallet needs, and everything else is refused here, before a tunnel
+/// stream is spent on it.
 ///
 /// This is called by nginx when an external request arrives at
 /// `{address}.relay.example.org/{path}`. Nginx extracts the address
@@ -28,6 +32,11 @@ pub async fn proxy_handler(
     headers: HeaderMap,
     body: String,
 ) -> Response {
+    let path = format!("/{path}");
+    if !state.config.proxy_paths.iter().any(|p| *p == path) {
+        return (StatusCode::NOT_FOUND, "not a node endpoint").into_response();
+    }
+
     // Validate Stellar address format
     if !is_valid_stellar_address(&stellar_address) {
         return (StatusCode::BAD_REQUEST, "invalid Stellar address format").into_response();
@@ -69,7 +78,7 @@ pub async fn proxy_handler(
         "stream_id": stream_id,
         "request": {
             "method": method.as_str(),
-            "path": format!("/{path}"),
+            "path": path,
             "headers": header_map,
             "body": if body.is_empty() { None } else { Some(&body) },
         }

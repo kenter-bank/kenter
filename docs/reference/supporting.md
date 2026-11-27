@@ -22,6 +22,7 @@ like several parties while being one.
 | `chain` | The node's own calls: join, reactivate, record its endpoint, heartbeat, claim, leave, withdraw; and the reads behind `status` |
 | `daemon` | Prepare (wait for funding, join the roster), serve with relay fallback, leave selection on a clean stop |
 | `select` | Register the pair for selection, watch the mint for slots, seed slots whose drand round is out, claim positions the pair might win. Spending is bounded by a daily XLM allowance |
+| `slot_cache` | The slots extend requests name, held about a ledger, so the check before an extend costs a few RPC reads per burst instead of two per request. A refusal a later ledger could overturn is checked again on a fresh read, at most once a second per slot |
 | `status` | What the daemon reports, and the lock that says one is running |
 | `tray` | Tray icon and a separate settings process (Windows and macOS) |
 

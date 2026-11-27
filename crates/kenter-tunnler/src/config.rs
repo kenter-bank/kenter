@@ -12,6 +12,17 @@ const DEFAULT_RPC: &str = "https://rpc.ankr.com/stellar_soroban";
 
 use crate::error::{Result, TunnlerError};
 
+/// The node paths a wallet may reach through `/proxy`: the health check a
+/// depositor makes before a print, and the extend request during one.
+/// Anything else is refused at the relay and never reaches a tunnel.
+/// `/kenter/shard` is not here: nodes no longer serve it.
+pub const PROXY_PATHS: &[&str] = &["/kenter/health", "/kenter/extend"];
+
+/// Largest request body `/proxy` accepts. An extend request carries the
+/// partial token of a chain of at most 12 pairs, a few KB; a health check
+/// has no body.
+pub const MAX_PROXY_BODY: usize = 64 * 1024;
+
 #[derive(Debug, Clone)]
 pub struct AppConfig {
     pub host: String,
@@ -45,6 +56,10 @@ pub struct AppConfig {
     /// Defaults to loopback, which is where the shipped nginx proxies
     /// from (`config/nginx-kenter-tunnler.conf`: `server 127.0.0.1:8000`).
     pub trusted_proxies: Vec<IpAddr>,
+    /// The paths `/proxy` forwards, each with its leading `/`. Always
+    /// [`PROXY_PATHS`] in a running relay; tests that drive other node
+    /// endpoints through a relay add theirs.
+    pub proxy_paths: Vec<String>,
 }
 
 impl AppConfig {
@@ -89,6 +104,9 @@ impl AppConfig {
             trusted_proxies: parse_trusted_proxies(
                 env::var("TUNNLER_TRUSTED_PROXIES").ok().as_deref(),
             ),
+            // Not from the environment: a relay that forwards more than
+            // the wallet's two calls is one nobody meant to run.
+            proxy_paths: PROXY_PATHS.iter().map(|p| p.to_string()).collect(),
         })
     }
 

@@ -42,6 +42,7 @@ use crate::chain::{Chain, FEE_FLOAT, LOW_BALANCE, XLM, funding_target, spendable
 use crate::config::{NodeConfig, Relay};
 use crate::home::Home;
 use crate::keys::PairKeys;
+use crate::slot_cache::SlotCache;
 use crate::status::{DaemonLock, Reporter, State, now};
 
 /// How long a fallback binding must hold before the roster is told.
@@ -129,6 +130,9 @@ pub struct MintLinkConfirmer {
     own_lock: OwnKeyLock,
     confirmed: Arc<AtomicU64>,
     owed: Owed,
+    /// The slots extend requests have named lately, so the check before
+    /// an extend costs the RPC a few reads per burst, not two per request.
+    slots: SlotCache,
 }
 
 impl MintLinkConfirmer {
@@ -142,6 +146,7 @@ impl MintLinkConfirmer {
             own_lock,
             confirmed: Arc::new(AtomicU64::new(0)),
             owed: Owed::default(),
+            slots: SlotCache::default(),
         }
     }
 
@@ -165,27 +170,28 @@ impl LinkConfirmer for MintLinkConfirmer {
         prior_links: Vec<([u8; 32], [u8; 32], [u8; 32])>,
     ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + '_>> {
         Box::pin(async move {
-            let slot = self
-                .mint
-                .lock()
-                .await
-                .get_slot(slot_id)
-                .await
-                .map_err(|e| format!("reading slot {slot_id}: {e}"))?
-                .ok_or_else(|| format!("slot {slot_id} does not exist"))?;
             // Position 1 is asked before selection formally closes; the
             // slot's claims are its positions once they can no longer
-            // change, which needs the current ledger to tell.
-            let ledger = self
-                .mint
-                .lock()
+            // change, which needs the current ledger to tell. Both reads
+            // go through the cache (`crate::slot_cache`), which never lets
+            // an old snapshot refuse a request a fresh one would admit.
+            let read = || async move {
+                let mint = self.mint.lock().await;
+                let slot = mint
+                    .get_slot(slot_id)
+                    .await
+                    .map_err(|e| format!("reading slot {slot_id}: {e}"))?;
+                let ledger = mint
+                    .tx()
+                    .rpc()
+                    .get_latest_ledger()
+                    .await
+                    .map_err(|e| format!("reading the latest ledger: {e}"))?;
+                Ok((ledger, slot))
+            };
+            self.slots
+                .admits(slot_id, &self.address, event_id, &prior_links, read)
                 .await
-                .tx()
-                .rpc()
-                .get_latest_ledger()
-                .await
-                .map_err(|e| format!("reading the latest ledger: {e}"))?;
-            slot.admits_next(&self.address, event_id, &prior_links, ledger)
         })
     }
 

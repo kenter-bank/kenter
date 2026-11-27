@@ -430,9 +430,9 @@ limit_conn_zone $binary_remote_addr zone=ws_conn:10m;
 # at a connected node, and each one costs the relay a task, a pending
 # stream and a message on that node's queue. The tunnler caps its own
 # in-flight work; this keeps the flood from arriving in the
-# first place. Generous enough that a browser loading a page of assets
-# never notices.
-limit_req_zone $binary_remote_addr zone=proxy_req:10m rate=30r/s;
+# first place. A wallet makes a handful of calls per print; 10 a second
+# per IP leaves room for depositors who share an address (a Tor exit).
+limit_req_zone $binary_remote_addr zone=proxy_req:10m rate=10r/s;
 limit_req_status 429;
 
 upstream tunnler {
@@ -517,6 +517,12 @@ server {
 
     ssl_certificate     /etc/letsencrypt/live/\$ssl_server_name/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/\$ssl_server_name/privkey.pem;
+    # A wallet sends at most a few KB; the relay itself refuses a body over
+    # 64 KiB. Short header and body timeouts keep slow clients from holding
+    # connections open.
+    client_max_body_size 64k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
@@ -528,7 +534,7 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     location / {
-        limit_req zone=proxy_req burst=60 nodelay;
+        limit_req zone=proxy_req burst=20 nodelay;
 
         proxy_pass http://tunnler/proxy\$request_uri;
         proxy_http_version 1.1;
@@ -569,6 +575,12 @@ server {
 
     ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    # A wallet sends at most a few KB; the relay itself refuses a body over
+    # 64 KiB. Short header and body timeouts keep slow clients from holding
+    # connections open.
+    client_max_body_size 64k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
@@ -598,6 +610,8 @@ server {
     }
 
     location / {
+        limit_req zone=proxy_req burst=20 nodelay;
+
         proxy_pass http://tunnler;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -618,6 +632,12 @@ server {
 
     ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    # A wallet sends at most a few KB; the relay itself refuses a body over
+    # 64 KiB. Short header and body timeouts keep slow clients from holding
+    # connections open.
+    client_max_body_size 64k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
@@ -629,7 +649,7 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     location / {
-        limit_req zone=proxy_req burst=60 nodelay;
+        limit_req zone=proxy_req burst=20 nodelay;
 
         proxy_pass http://tunnler/proxy/\$stellar_address\$uri\$is_args\$args;
         proxy_http_version 1.1;

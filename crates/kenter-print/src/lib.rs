@@ -30,6 +30,9 @@ use kenter_crypto::token::{assemble_bearer_token, BearerToken, MintBinding, Part
 use kenter_network::handlers::{build_extend_request, parse_extend_response};
 use kenter_network::protocol::{ExtendResponse, HealthResponse};
 
+/// The largest reply a node may send, in bytes.
+pub const MAX_REPLY: usize = 256 * 1024;
+
 /// How a depositor reaches nodes: plain HTTPS to the relay's open
 /// `/proxy/<node>/<path>` route.
 ///
@@ -46,11 +49,11 @@ use kenter_network::protocol::{ExtendResponse, HealthResponse};
 /// the ledger as each node confirms, and the depositor's own shards, the
 /// final link and the claim key never leave this machine. TLS protects
 /// the request from the network, and the relay reads it, with or without
-/// a session. The relay learns the depositor's IP but not their Stellar
-/// address.
-/// The largest reply a node may send, in bytes.
-pub const MAX_REPLY: usize = 256 * 1024;
-
+/// a session. Without one, the relay still learns more than the
+/// depositor's IP: an extend request names its slot, and the chain names
+/// each slot's depositor, so a relay that looks can link the IP to the
+/// depositor's Stellar address. Reaching the relay over Tor is what hides
+/// the IP.
 #[derive(Clone)]
 pub struct NodeRelay {
     base: String,
