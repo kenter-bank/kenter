@@ -49,9 +49,13 @@ in [Data formats](/architecture/data-formats) and in the crate's `API.md`.
 | `BearerToken::ephemeral_public_key` | The composed key: the sum of every pair's partial public key |
 
 A slot id is unique only within one mint, so the binding is what tells a
-payee which deployment to ask. It is inside the signed range: a binding an
-attacker could rewrite would point the payee at a contract of the attacker's
-choosing. `pay_token` also tells the payee whether the escrow can be frozen
+payee which deployment to ask. The binding is inside the signed range, so it
+can't be changed without breaking the note's signature. Otherwise anyone
+handling a note could point its payee at a contract they control. The
+signature doesn't make the binding trustworthy on its own: whoever signs a
+note chooses what it names. So a wallet asks only its own configured mint
+about a note, and treats a note bound to any other mint as foreign.
+`pay_token` also tells the payee whether the escrow can be frozen
 (an issued asset with `auth_revocable` can be; native XLM cannot).
 
 ### The claim key

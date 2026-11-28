@@ -66,8 +66,12 @@ pub fn serialize_bearer_token(
 
     // -- Mint Binding --
     // Inside the signed range, like everything else that says what this
-    // note is. A binding an attacker could rewrite would point the payee
-    // at a contract of the attacker's choosing.
+    // note is, so it can't be changed without breaking the signature.
+    // Otherwise anyone handling a note could point its payee at a contract
+    // they control. The signature doesn't make the binding trustworthy on
+    // its own: whoever signs a note chooses what it names. So a wallet asks
+    // only its own configured mint about a note, and treats a note bound to
+    // any other mint as foreign.
     match &token.mint_binding {
         Some(b) => {
             buf.write_all(&[0x01])?;
