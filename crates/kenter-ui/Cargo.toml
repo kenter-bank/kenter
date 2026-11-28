@@ -31,7 +31,7 @@ packaged = []
 
 [dependencies]
 # The SVG-skin appearance engine.
-pelt = { git = "https://github.com/kenter-bank/pelt", rev = "b2f09bcc64f71e6364277c4502c48a3a3ef995d8" }
+pelt = { git = "https://github.com/kenter-vault/pelt", rev = "b2f09bcc64f71e6364277c4502c48a3a3ef995d8" }
 # Flexbox/grid layout (structure; appearance is the pelt).
 taffy = "0.7"
 # Windowing + a CPU framebuffer to present the composited canvas.

@@ -13,7 +13,7 @@ A release is a git tag plus a set of packages: the Windows MSI and the Linux
   source a release was built from can be checked too.
 
 Both are signed with the same key, an SSH signing key held on a hardware
-token. Its public half is in [`allowed_signers`](https://github.com/kenter-bank/kenter/blob/main/allowed_signers)
+token. Its public half is in [`allowed_signers`](https://github.com/kenter-vault/kenter/blob/main/allowed_signers)
 at the repository root:
 
 | | |
@@ -21,6 +21,10 @@ at the repository root:
 | Signer | `358557624+kenter-bank@users.noreply.github.com` |
 | Key type | `sk-ssh-ed25519@openssh.com` |
 | Fingerprint | `SHA256:9NAwKM6LRNOM/se1A1AXliFoItw1EPX4dw9pdzmeogw` |
+
+The signer name keeps the account's earlier name, `kenter-bank`. It is only
+the label `allowed_signers` matches signatures against, so changing it
+would stop every earlier signature from verifying. The key is what counts.
 
 Checking a signature needs OpenSSH 8.2 or newer (`ssh -V`). It ships with
 current Linux, macOS and Windows 10/11.
@@ -59,7 +63,7 @@ repository, and check its fingerprint against the one above.
 ## Verifying the source
 
 ```bash
-git clone https://github.com/kenter-bank/kenter.git
+git clone https://github.com/kenter-vault/kenter.git
 cd kenter
 git config gpg.ssh.allowedSignersFile allowed_signers
 git verify-tag v0.2.4

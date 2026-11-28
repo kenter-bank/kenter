@@ -29,7 +29,7 @@ set -uo pipefail  # Note: removed -e to handle errors gracefully
 DOMAIN="relay.example.org"
 
 # Git repository URL (public format -- token is injected automatically if set)
-REPO_URL="https://github.com/kenter-bank/kenter.git"
+REPO_URL="https://github.com/kenter-vault/kenter.git"
 
 # GitHub Personal Access Token (required for private repos)
 # Generate at: https://github.com/settings/tokens (fine-grained, repo read-only)

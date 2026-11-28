@@ -105,7 +105,7 @@ opened a camera.
 ## The workspace
 
 ```bash
-git clone https://github.com/kenter-bank/kenter.git
+git clone https://github.com/kenter-vault/kenter.git
 cd kenter
 cargo build
 ```

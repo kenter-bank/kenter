@@ -30,7 +30,7 @@ export default withMermaid(
 
     themeConfig: {
       logo: '/logo.svg',
-      socialLinks: [{ icon: 'github', link: 'https://github.com/kenter-bank/kenter' }],
+      socialLinks: [{ icon: 'github', link: 'https://github.com/kenter-vault/kenter' }],
       nav: [
         { text: 'Architecture', link: '/architecture/overview' },
         { text: 'Reference', link: '/reference/index' },

@@ -11,7 +11,7 @@
 #
 # Both were built from the signed tag contracts-v1. The deploy record,
 # listing the code hashes and every constructor value, is signed with the
-# project's release key: https://github.com/kenter-bank/kenter/releases
+# project's release key: https://github.com/kenter-vault/kenter/releases
 
 VERSION = "2.7.0"
 NETWORK_PASSPHRASE = "Public Global Stellar Network ; September 2015"
@@ -24,4 +24,4 @@ ACCOUNTS = [
 ORG_NAME = "Kenter"
 ORG_URL = "https://kenter.app"
 ORG_DESCRIPTION = "Open-source, non-custodial bearer notes on Stellar, backed by USDC escrowed in an adminless contract."
-ORG_GITHUB = "kenter-bank"
+ORG_GITHUB = "kenter-vault"

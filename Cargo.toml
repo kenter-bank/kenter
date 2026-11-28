@@ -19,7 +19,7 @@ members = [
 [workspace.package]
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/kenter-bank/kenter"
+repository = "https://github.com/kenter-vault/kenter"
 
 # Keep the UI render/composite path fast even in dev builds (the hot loops are
 # per-pixel). Only these packages are optimized; everything else stays debuggable

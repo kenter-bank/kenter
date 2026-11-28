@@ -4530,7 +4530,7 @@ checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
 [[package]]
 name = "pelt"
 version = "0.1.0"
-source = "git+https://github.com/kenter-bank/pelt?rev=b2f09bcc64f71e6364277c4502c48a3a3ef995d8#b2f09bcc64f71e6364277c4502c48a3a3ef995d8"
+source = "git+https://github.com/kenter-vault/pelt?rev=b2f09bcc64f71e6364277c4502c48a3a3ef995d8#b2f09bcc64f71e6364277c4502c48a3a3ef995d8"
 dependencies = [
  "resvg",
  "thiserror 2.0.18",

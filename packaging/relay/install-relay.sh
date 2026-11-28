@@ -32,7 +32,7 @@
 # relay's key, the certificate and the onion are kept.
 set -eu
 
-REPO=kenter-bank/kenter
+REPO=kenter-vault/kenter
 # The release key, as in the kenter repository's allowed_signers.
 PRINCIPAL=358557624+kenter-bank@users.noreply.github.com
 SIGNERS='358557624+kenter-bank@users.noreply.github.com namespaces="git,file" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIKdNBCpNq+7HKdpxBhvzpk8hIDmsgXIdTlgPQVxBvNk/AAAAD3NzaDprZW50ZXItc2lnbg== kenter-sign'

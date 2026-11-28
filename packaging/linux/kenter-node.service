@@ -14,7 +14,7 @@
 
 [Unit]
 Description=Kenter pair node
-Documentation=https://github.com/kenter-bank/kenter/blob/main/docs/runbook/setup.md
+Documentation=https://github.com/kenter-vault/kenter/blob/main/docs/runbook/setup.md
 Wants=network-online.target
 After=network-online.target
 

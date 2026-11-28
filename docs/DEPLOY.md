@@ -295,7 +295,7 @@ installer and `relay.env` (network, domain, roster), listed in a signed
 `SHA256SUMS`. On the VPS, as root:
 
 ```sh
-curl -fsSLO https://github.com/kenter-bank/kenter/releases/download/relay-v0.1.0/install-relay.sh
+curl -fsSLO https://github.com/kenter-vault/kenter/releases/download/relay-v0.1.0/install-relay.sh
 grep '^SIGNERS=' install-relay.sh      # must match allowed_signers in a fresh clone
 sh install-relay.sh relay-v0.1.0
 ```
@@ -475,7 +475,7 @@ Edit the top of `scripts/vps_startup.sh`:
 
 ```bash
 DOMAIN="relay.example.org"
-REPO_URL="https://github.com/kenter-bank/kenter.git"
+REPO_URL="https://github.com/kenter-vault/kenter.git"
 REPO_BRANCH="main"
 KENTER_USER="kenter"
 LOG_LEVEL="info"
