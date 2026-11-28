@@ -5,15 +5,19 @@
 #   sh install-relay.sh TAG          install, or update to the relay release TAG
 #   sh install-relay.sh --close-ssh  close public SSH, once you've logged in
 #                                    through the onion (run it from that session)
+#   sh install-relay.sh --onion-client NAME descriptor:x25519:<base32>
+#                                    let one more onion client key reach SSH's
+#                                    onion (a second machine of the operator's)
 #
 # Settings, in the environment:
 #   DOMAIN=relay.example.org   the relay's name; default: the release's (relay.env).
 #                              It must be a relay the wallet builds list.
-#   ONION_AUTH=descriptor:x25519:<base32>
-#                              the operator's onion client key: only that key
-#                              can reach SSH's onion service. Without it the
-#                              onion is open to anyone who learns its address
-#                              (SSH still takes keys only).
+#   ONION_AUTH="descriptor:x25519:<base32> ..."
+#                              the operator's onion client keys, one per machine,
+#                              separated by spaces: only these keys can reach
+#                              SSH's onion service. Without them the onion is
+#                              open to anyone who learns its address (SSH still
+#                              takes keys only).
 #   SKIP_DNS_CHECK=1           behind NAT, where DOMAIN can't resolve to an
 #                              address of this machine.
 #
@@ -50,9 +54,44 @@ say() { printf '\n== %s\n' "$*"; }
 ok() { printf '   ok  %s\n' "$*"; }
 die() { printf '\ninstall-relay: %s\n' "$*" >&2; exit 1; }
 
-usage="usage: sh install-relay.sh TAG | --close-ssh"
-[ $# -eq 1 ] || die "$usage"
+usage="usage: sh install-relay.sh TAG | --close-ssh | --onion-client NAME KEY"
+[ $# -eq 1 ] || [ "${1:-}" = "--onion-client" ] || die "$usage"
 [ "$(id -u)" -eq 0 ] || die "run as root"
+
+# --- Onion client keys ------------------------------------------------------
+
+check_onion_key() {
+    case $1 in
+    descriptor:x25519:[A-Z2-7]*) ;;
+    *) die "an onion client key is descriptor:x25519:<base32 public key> (relay-check.sh onion-key)" ;;
+    esac
+}
+
+# write_onion_client NAME KEY: authorized_clients/NAME.auth
+write_onion_client() {
+    printf '%s\n' "$2" > "$ONION_DIR/authorized_clients/$1.auth"
+    chown debian-tor:debian-tor "$ONION_DIR/authorized_clients/$1.auth"
+    chmod 0600 "$ONION_DIR/authorized_clients/$1.auth"
+}
+
+onion_clients() {
+    ls "$ONION_DIR/authorized_clients/" 2>/dev/null | sed -n 's/\.auth$//p' | tr '\n' ' '
+}
+
+if [ "$1" = "--onion-client" ]; then
+    [ $# -eq 3 ] || die "usage: sh install-relay.sh --onion-client NAME descriptor:x25519:<base32>"
+    [ -s "$ONION_DIR/hostname" ] || die "SSH's onion service isn't set up yet: install the relay first"
+    case $2 in
+    *[!a-z0-9-]* | "") die "NAME is lower-case letters, digits and dashes" ;;
+    esac
+    check_onion_key "$3"
+    write_onion_client "$2" "$3"
+    systemctl reload tor || systemctl restart tor
+    say "Onion client $2 added"
+    echo "   Clients now: $(onion_clients)"
+    echo "   To remove one: rm $ONION_DIR/authorized_clients/NAME.auth && systemctl reload tor"
+    exit 0
+fi
 
 # --- Firewall ---------------------------------------------------------------
 
@@ -384,13 +423,12 @@ if ! grep -q "^HiddenServiceDir $ONION_DIR" /etc/tor/torrc; then
 fi
 install -d -m 0700 -o debian-tor -g debian-tor "$ONION_DIR" "$ONION_DIR/authorized_clients"
 if [ -n "${ONION_AUTH:-}" ]; then
-    case $ONION_AUTH in
-    descriptor:x25519:[A-Z2-7]*) ;;
-    *) die "ONION_AUTH is descriptor:x25519:<base32 public key> (relay-check.sh onion-key)" ;;
-    esac
-    printf '%s\n' "$ONION_AUTH" > "$ONION_DIR/authorized_clients/operator.auth"
-    chown debian-tor:debian-tor "$ONION_DIR/authorized_clients/operator.auth"
-    chmod 0600 "$ONION_DIR/authorized_clients/operator.auth"
+    for k in $ONION_AUTH; do check_onion_key "$k"; done
+    n=0
+    for k in $ONION_AUTH; do
+        n=$((n + 1))
+        write_onion_client "operator-$n" "$k"
+    done
 fi
 runuser -u debian-tor -- tor --verify-config -f /etc/tor/torrc >/dev/null || die "tor refuses its config"
 systemctl enable -q tor
@@ -399,7 +437,8 @@ i=0
 while [ ! -s "$ONION_DIR/hostname" ] && [ $i -lt 60 ]; do sleep 1; i=$((i + 1)); done
 [ -s "$ONION_DIR/hostname" ] || die "tor didn't publish SSH's onion: journalctl -u tor@default -n 30"
 ONION=$(cat "$ONION_DIR/hostname")
-if [ -s "$ONION_DIR/authorized_clients/operator.auth" ]; then ok "onion $ONION (client key required)"
+clients=$(onion_clients)
+if [ -n "$clients" ]; then ok "onion $ONION (client key required: $clients)"
 else ok "onion $ONION (no client key: set ONION_AUTH and rerun to require one)"; fi
 
 # --- 8. Console password ----------------------------------------------------

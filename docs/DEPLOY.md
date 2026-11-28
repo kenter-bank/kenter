@@ -312,11 +312,13 @@ once.
 | Setting (environment) | Meaning |
 |---|---|
 | `DOMAIN` | the relay's name, if not the release's; it must be a relay the wallet builds list |
-| `ONION_AUTH` | `descriptor:x25519:<base32>`: only this Tor client key can reach SSH's onion |
+| `ONION_AUTH` | `descriptor:x25519:<base32>`, one per machine, separated by spaces: only these Tor client keys can reach SSH's onion |
 | `SKIP_DNS_CHECK=1` | behind NAT, where the domain can't resolve to an address of the machine |
 
 Once you can log in through the onion, run `sh install-relay.sh --close-ssh`
 from that session to close public SSH; it refuses from any other session.
+To let another machine reach the onion later, run
+`sh install-relay.sh --onion-client NAME descriptor:x25519:<base32>` on the relay.
 Run the installer again with a new tag to update. The relay's key, the
 certificate and the onion are kept.
 
