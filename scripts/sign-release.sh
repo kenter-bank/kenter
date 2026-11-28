@@ -7,6 +7,10 @@
 # Writes <dist-dir>/SHA256SUMS.sig. The key is a FIDO2 key on a hardware
 # token: expect a PIN prompt and a touch. Override the key reference with
 # KENTER_SIGN_KEY (default ~/.ssh/id_kenter_sign).
+#
+# Hardware tokens sleep, often during the builds that come first, so it
+# waits for Enter before signing; KENTER_SIGN_KEY_AWAKE=1 skips the wait
+# (for a caller that has just asked).
 
 set -euo pipefail
 
@@ -24,6 +28,9 @@ sums=$DIST/SHA256SUMS
 (cd "$DIST" && sha256sum --check --strict SHA256SUMS)
 
 rm -f "$sums.sig"
+if [[ ${KENTER_SIGN_KEY_AWAKE:-0} != 1 && -r /dev/tty ]]; then
+  read -r -p "Plug in / wake the signing key, then press Enter: " _ </dev/tty
+fi
 # Straight to the token: desktop agents (GNOME keyring and others) cannot
 # use FIDO2 keys and answer "agent refused operation".
 env -u SSH_AUTH_SOCK ssh-keygen -Y sign -f "$KEY" -n file "$sums"
